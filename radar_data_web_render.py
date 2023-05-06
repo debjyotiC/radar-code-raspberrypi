@@ -1,13 +1,15 @@
 from flask import Flask, render_template
 import sqlite3
-from datetime import datetime
+import os
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
 
 
 @app.route("/")
 def index():
-    conn = sqlite3.connect('radar_database.db')
+    conn = sqlite3.connect(f'{script_dir}/radar_database.db')
     c = conn.cursor()
 
     c.execute("SELECT * FROM radar_data WHERE key_1=? AND key_2=?", ("Prediction", "Time"))

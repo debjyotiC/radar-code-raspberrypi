@@ -60,7 +60,7 @@ def classifier_func(range_doppler, tflite_model):
     pred = np.argmax(classes)
 
     db = {'Prediction': classes_values[pred], 'Time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-    with sqlite3.connect('radar_database.db') as conn:
+    with sqlite3.connect(f'{script_dir}/radar_database.db') as conn:
         c = conn.cursor()
     c.execute("INSERT INTO radar_data VALUES (?, ?, ?, ?)", ("Prediction", f"{db['Prediction']}", "Time", f"{db['Time']}")).fetchall()
     conn.commit()
