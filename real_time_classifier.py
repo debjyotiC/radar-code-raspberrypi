@@ -1,13 +1,16 @@
 import serial
 import time
+import os
 import numpy as np
 import tensorflow as tf
 from datetime import datetime
 import sqlite3
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
 # TO DO: Add your own config file and model path
-configFileName = 'config_files/AWR294X_Deb.cfg'
-model_path = "saved-tflite-model/range-doppler-float16.tflite"
+configFileName = f'{script_dir}/config_files/AWR294X_Deb.cfg'
+model_path = f"{script_dir}/saved-tflite-model/range-doppler-float16.tflite"
 
 debug = False
 
