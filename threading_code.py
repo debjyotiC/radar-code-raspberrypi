@@ -1,16 +1,18 @@
 import threading
 import os
+import sys
+
+python_executable_path = sys.executable
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def web_server():
     # code for the first thread
-    os.system(
-        "C:\\Users\\Deb\\anaconda3\\envs\\radar-code\\python.exe C:\\Users\\Deb\\PycharmProjects\\radar-code\\radar_data_web_render.py")
+    os.system(f"{python_executable_path} {script_dir}/radar_data_web_render.py")
 
 
 def data_classifier():
-    os.system(
-        "C:\\Users\\Deb\\anaconda3\\envs\\radar-code\\python.exe C:\\Users\\Deb\\PycharmProjects\\radar-code\\real_time_classifier.py")
+    os.system(f"{python_executable_path} {script_dir}/real_time_classifier.py")
 
 
 thread1 = threading.Thread(target=web_server)
