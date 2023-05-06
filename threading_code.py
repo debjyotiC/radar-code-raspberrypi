@@ -7,7 +7,6 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def web_server():
-    # code for the first thread
     os.system(f"{python_executable_path} {script_dir}/radar_data_web_render.py")
 
 
