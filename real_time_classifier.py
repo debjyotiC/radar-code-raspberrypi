@@ -9,6 +9,8 @@ import sqlite3
 configFileName = 'config_files/AWR294X_Deb.cfg'
 model_path = "saved-tflite-model/range-doppler-float16.tflite"
 
+debug = False
+
 CLIport = {}
 Dataport = {}
 byteBuffer = np.zeros(2 ** 15, dtype='uint8')
@@ -61,7 +63,8 @@ def classifier_func(range_doppler, tflite_model):
     conn.commit()
     conn.close()
 
-    print(db)
+    if debug:
+        print(db)
 
 
 # Function to configure the serial ports and send the data from
@@ -83,7 +86,8 @@ def serialConfig(configFileName):
     config = [line.rstrip('\r\n') for line in open(configFileName)]
     for i in config:
         CLIport.write((i + '\n').encode())
-        print(i)
+        if debug:
+            print(i)
         time.sleep(0.01)
 
     return CLIport, Dataport
