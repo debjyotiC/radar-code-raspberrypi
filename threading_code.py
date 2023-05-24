@@ -5,6 +5,8 @@ import sys
 python_executable_path = sys.executable
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
+umbc = False
+
 
 def web_server():
     os.system(f"{python_executable_path} {script_dir}/radar_data_web_render.py")
@@ -15,6 +17,7 @@ def data_classifier():
 
 
 thread1 = threading.Thread(target=web_server)
+
 thread2 = threading.Thread(target=data_classifier)
 
 thread1.start()
