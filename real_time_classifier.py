@@ -12,7 +12,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 debug = False  # prints debug text
 
 # TO DO: Add your own config file and model path
-configFileName = f'{script_dir}/xwr16xx_profile_2023_04_18T16_04_15_382.cfg'
+configFileName = f'{script_dir}/config_files/xwr16xx_profile_2023_04_18T16_04_15_382.cfg'
 model_path = f"{script_dir}/saved-tflite-model/4-04-23-outdoor-rangedoppler-cfar-float16.tflite"
 
 CLIport = {}
@@ -343,7 +343,7 @@ def readAndParseData16xx(Dataport, configParameters):
                     np.arange(-configParameters["numDopplerBins"] / 2, configParameters["numDopplerBins"] / 2),
                     configParameters["dopplerResolutionMps"])
 
-                classifier_func(rangeDoppler, model_path)
+                print_generator(rangeArray, dopplerArray, rangeDoppler, model_path)
 
         # Remove already processed data
         if 0 < idX < byteBufferLength:
