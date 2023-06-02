@@ -3,24 +3,24 @@ import time
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-import sqlite3
+from database_class import DatabaseConnector
 import os
 from datetime import datetime
 
-# TO DO: Add your own config file and model path
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
-# TO DO: Add your own config file and model path
-configFileName = f'{script_dir}/config_files/AWR294X_Deb.cfg'
-model_path = f"{script_dir}/saved-tflite-model/range-doppler-float16.tflite"
+debug = False  # prints debug text
 
-debug = False  # prints Range-Doppler data when enabled
+# TO DO: Add your own config file and model path
+configFileName = f'{script_dir}/xwr16xx_profile_2023_04_18T16_04_15_382.cfg'
+model_path = f"{script_dir}/saved-tflite-model/4-04-23-outdoor-rangedoppler-cfar-float16.tflite"
 
 CLIport = {}
 Dataport = {}
 byteBuffer = np.zeros(2 ** 15, dtype='uint8')
 byteBufferLength = 0
+
+db_connector = DatabaseConnector("radar_database.db")
 
 
 # ------------------------------------------------------------------
@@ -41,36 +41,12 @@ def apply_2d_cfar(signal, guard_band_width, kernel_size, threshold_factor):
     return thresholded_signal
 
 
-def compute_cam(tflite_interpreter, mat, layer_name, index_input, index_output):
-    # Get the index of the last convolutional layer.
-    last_conv_index = 0
-
-    for i in range(len(tflite_interpreter.get_output_details())):
-        if tflite_interpreter.get_output_details()[i]['name'] == layer_name:
-            last_conv_index = i
-            break
-
-    # Set the input tensor to the input image.
-    tflite_interpreter.set_tensor(index_input, mat)
-
-    # Run the model and get the output of the last convolutional layer and the softmax predictions.
-    tflite_interpreter.invoke()
-    last_conv_output, predictions = tflite_interpreter.get_tensor(last_conv_index), tflite_interpreter.get_tensor(
-        index_output)
-
-    # Compute the CAM by taking a weighted sum of the feature maps in the last convolutional layer.
-    cam = np.sum(last_conv_output * np.expand_dims(predictions, axis=1), axis=-1)
-    cam = ((cam - np.min(cam)) / (np.max(cam) - np.min(cam)))[0]
-
-    return cam
-
-
-def print_generator(range_arr, doppler_array, range_doppler, tflite_model):
+def classifier_func(range_doppler, tflite_model):
     # 2D CFAR parameters
     guard_band_width = 3
     kernel_size = 3
     threshold_factor = 1
-    range_doppler_cfar = apply_2d_cfar(range_doppler, guard_band_width, kernel_size, threshold_factor)[:, :128]
+    range_doppler_cfar = apply_2d_cfar(range_doppler, guard_band_width, kernel_size, threshold_factor)
 
     interpreter = tf.lite.Interpreter(model_path=tflite_model)
     interpreter.allocate_tensors()
@@ -79,40 +55,23 @@ def print_generator(range_arr, doppler_array, range_doppler, tflite_model):
     output_details = interpreter.get_output_details()[0]
 
     input_index = input_details["index"]
-    output_index = output_details['index']
-
     classes_values = ["occupied_room", "empty_room"]
     in_tensor = np.float32(range_doppler_cfar.reshape(1, range_doppler_cfar.shape[0], range_doppler_cfar.shape[1], 1))
-    # interpreter.set_tensor(input_index, in_tensor)
-    # interpreter.invoke()
+    interpreter.set_tensor(input_index, in_tensor)
+    interpreter.invoke()
 
-    cam_mat = compute_cam(interpreter, in_tensor, 'conv2d_2', input_index, output_index)
     classes = interpreter.get_tensor(output_details['index'])[0]
     pred = np.argmax(classes)
-    # conf_score = np.round(pred[0], 4)
 
     db = {'Prediction': classes_values[pred], 'Time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-    cam_blob = cam_mat.tobytes()
-    rdv_blob = range_doppler[:, :128].tobytes()
+    db_connector.connect()
+    db_connector.insert_data("Prediction", f"{db['Prediction']}", "Time", f"{db['Time']}")
+    db_connector.insert_rdv_matrix(range_doppler, f"{db['Time']}")
+    db_connector.close()
 
-    with sqlite3.connect(f'{script_dir}/radar_database.db') as conn:
-        c = conn.cursor()
-
-    # Create the "rdv_mat" table if it doesn't exist
-    c.execute('''CREATE TABLE IF NOT EXISTS rdv_mat (
-                        id INTEGER PRIMARY KEY,
-                        matrix_values BLOB,
-                        timestamp TEXT
-                    )''')
-    c.execute('''CREATE TABLE IF NOT EXISTS radar_data (key_1 text, value_1 text, key_2 text, value_2 text)''')
-    c.execute("INSERT INTO rdv_mat (matrix_values, timestamp) VALUES (?, ?)", (rdv_blob, db['Time']))
-    c.execute("INSERT INTO radar_data VALUES (?, ?, ?, ?)",
-              ("Prediction", f"{db['Prediction']}", "Time", f"{db['Time']}"))
-    # Commit the changes
-    conn.commit()
-    # conn.close()
-    # print(db)
+    if debug:
+        print(db)
 
 
 # Function to configure the serial ports and send the data from
@@ -124,7 +83,7 @@ def serialConfig(configFileName):
 
     # Raspberry pi / Ubuntu add ports to dial out user group sudo usermod -a -G dialout $USER
     CLIport = serial.Serial('/dev/ttyACM0', 115200)
-    Dataport = serial.Serial('/dev/ttyACM1', 852272)
+    Dataport = serial.Serial('/dev/ttyACM1', 921600)
 
     # Windows
     # CLIport = serial.Serial('COM6', 115200)
@@ -134,7 +93,7 @@ def serialConfig(configFileName):
     config = [line.rstrip('\r\n') for line in open(configFileName)]
     for i in config:
         CLIport.write((i + '\n').encode())
-        # print(i)
+        print(i)
         time.sleep(0.01)
 
     return CLIport, Dataport
@@ -155,7 +114,7 @@ def parseConfigFile(configFileName):
 
         # Hard code the number of antennas, change if other configuration is used
         numRxAnt = 4
-        numTxAnt = 4
+        numTxAnt = 2
 
         # Get the information about the profile configuration
         if "profileCfg" in splitWords[0]:
@@ -384,7 +343,7 @@ def readAndParseData16xx(Dataport, configParameters):
                     np.arange(-configParameters["numDopplerBins"] / 2, configParameters["numDopplerBins"] / 2),
                     configParameters["dopplerResolutionMps"])
 
-                print_generator(rangeArray, dopplerArray, rangeDoppler, model_path)
+                classifier_func(rangeDoppler, model_path)
 
         # Remove already processed data
         if 0 < idX < byteBufferLength:

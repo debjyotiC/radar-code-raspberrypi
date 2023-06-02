@@ -1,129 +1,147 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>RADAR | Occupancy results</title>
+    <title>RADAR Occupancy Results</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='radar.png') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        body {
+        body, html {
+            height: 100%;
+            margin: 0;
             font-family: Arial, sans-serif;
             background-color: #f2f2f2;
-            margin: 0;
-            padding: 0;
         }
+
         .container {
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: stretch;
             justify-content: center;
-            align-items: flex-start;
+            height: 70vh;
+            padding: 20px;
         }
-        .box {
+
+        #box {
+            margin-bottom: 20px;
+            height: 50px;
             width: 100%;
-            height: 300px;
-            margin: 20px;
-            background-color: green;
-            border: 2px solid black;
-            position: relative;
-        }
-        .box-title {
-            position: absolute;
-            top: 5px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: black;
+            border: 1px solid black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-weight: bold;
-            font-size: 18px;
+            background-color: green;
+            color: white;
         }
+
         #contourPlot {
-            margin: 20px;
-            width: 100%;
-            height: 300px;
+            flex: 1;
+            height: 50%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
         }
-        h1 {
+
+        #timestamp {
             text-align: center;
-            color: #0077cc;
-        }
-        p {
             font-size: 18px;
-            text-align: center;
-            color: #444444;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        /* Mobile-friendly adjustments */
+        @media (max-width: 768px) {
+            .container {
+                height: 100%;
+            }
+            #contourPlot {
+                height: 60%;
+            }
+            #box {
+                height: 40px;
+            }
         }
     </style>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 </head>
 <body>
-    <h1>Occupancy results</h1>
     <div class="container">
-        <div class="box" id="predictionBox"></div>
+        <div id="box" class="box"></div>
         <div id="contourPlot"></div>
+        <div id="timestamp"></div>
     </div>
-    <p>Prediction: <span id="prediction">{{ results['Prediction'] }}</span> at time <span id="time">{{ results['Time'] }}</span></p>
     <audio src="{{ url_for('static', filename='alarm.mp3') }}" id="alarmSound"></audio>
     <script type="text/javascript">
-        setInterval(function() {
-            location.reload();
-        }, 1500); // reload the page every 3 seconds
-
-        // Get the prediction value
-        var prediction = "{{ results['Prediction'] }}";
-
-        // Get the box element
-        var boxElement = document.getElementById("predictionBox");
-
-        // Get the alarm sound element
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
         var alarmSound = document.getElementById("alarmSound");
+        var isAlarmPlaying = false;
 
-        // Get the prediction element
-        var predictionElement = document.getElementById("prediction");
+        socket.on('data', function(data) {
+            var x = data.x;
+            var y = data.y;
+            var z = data.z;
+            var classification = data.classification;
 
-        // Get the time element
-        var timeElement = document.getElementById("time");
+            // Update the contour plot
+            var trace = {
+                x: x,
+                y: y,
+                z: z,
+                type: 'contour',
+                colorscale: 'Viridis'
+            };
+            var data = [trace];
+            var layout = {
+                title: 'Range-Doppler Plot',
+                autosize: true,
+                margin: {
+                    l: 50,
+                    r: 50,
+                    b: 50,
+                    t: 50,
+                    pad: 4
+                },
+                xaxis: {
+                    title: 'Range (m)',
+                    titlefont: {
+                        size: 14,
+                        color: '#333'
+                    }
+                },
+                yaxis: {
+                    title: 'Doppler velocity (m/s^2)',
+                    titlefont: {
+                        size: 14,
+                        color: '#333'
+                    }
+                }
+            };
+            Plotly.newPlot('contourPlot', data, layout);
 
-        // Change the color of the box based on the prediction value
-        if (prediction === "occupied_room") {
-            boxElement.style.backgroundColor = "red";
-            alarmSound.play(); // Play the alarm sound
-            predictionElement.style.color = "red";
-            timeElement.style.color = "red";
-        } else {
-            boxElement.style.backgroundColor = "green";
-            alarmSound.pause(); // Pause the alarm sound
-            predictionElement.style.color = "black";
-            timeElement.style.color = "black";
-        }
+            // Update the box element with the classification result
+            var boxElement = document.getElementById('box');
+            boxElement.innerText = classification;
 
-        // Define the x, y, and z arrays for the contour plot
-        var x = {{ x.tolist() }};
-        var y = {{ y.tolist() }};
-        var z = {{ z.tolist() }};
-
-        // Create the contour plot
-        var trace = {
-            x: x,
-            y: y,
-            z: z,
-            type: 'contour',
-            colorscale: 'Viridis'
-        };
-        var data = [trace];
-        var layout = {
-            title: 'Range-Doppler Plot',
-            autosize: true,
-            margin: {
-                l: 50,
-                r: 50,
-                b: 50,
-                t: 50,
-                pad: 4
-            },
-            xaxis: {
-                title: 'Range (m)'
-            },
-            yaxis: {
-                title: 'Doppler velocity (m/s^2)'
+            // Set the box color based on the classification
+            if (classification === 'occupied_room') {
+                boxElement.style.backgroundColor = 'red';
+                alarmSound.play();
+            } else {
+                boxElement.style.backgroundColor = 'green';
+                alarmSound.pause();
             }
-        };
-        Plotly.newPlot('contourPlot', data, layout);
+
+            // Update the timestamp
+            var timestampElement = document.getElementById('timestamp');
+            var currentDate = new Date();
+            var timestamp = 'Timestamp: ' + currentDate.toLocaleString();
+            timestampElement.innerText = timestamp;
+        });
+
+        // Auto-update the plot every 1 second
+        setInterval(function() {
+            socket.emit('data');
+        }, 500);
     </script>
 </body>
 </html>

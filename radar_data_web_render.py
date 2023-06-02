@@ -1,43 +1,62 @@
 from flask import Flask, render_template
+from flask_socketio import SocketIO, emit
 import numpy as np
-import sqlite3
-import os
+import time
+import threading
+from database_class import DatabaseConnector
 
-script_dir = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'secret'
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+socketio = SocketIO(app)
 
-configParameters = {'numDopplerBins': 16, 'numRangeBins': 128, 'rangeResolutionMeters': 0.04360212053571429,
-                    'rangeIdxToMeters': 0.04360212053571429, 'dopplerResolutionMps': 0.12518841691334906,
-                    'maxRange': 10.045928571428572, 'maxVelocity': 2.003014670613585}  # AWR2944X_Deb
+db_connector = DatabaseConnector("radar_database.db")
+db_connector.connect()
+
+configParameters = {'numDopplerBins': 16, 'numRangeBins': 256, 'rangeResolutionMeters': 0.146484375,
+                    'rangeIdxToMeters': 0.146484375, 'dopplerResolutionMps': 0.1252347734553042, 'maxRange': 33.75,
+                    'maxVelocity': 1.0018781876424336}
+
+rangeArray = np.array(range(configParameters["numRangeBins"])) * configParameters["rangeIdxToMeters"]
+dopplerArray = np.multiply(
+    np.arange(-configParameters["numDopplerBins"] / 2, configParameters["numDopplerBins"] / 2),
+    configParameters["dopplerResolutionMps"])
+
+
+def emit_data():
+    while True:
+        classification_time_stamp = db_connector.fetch_data("Prediction", "Time")[-1]
+        rdv_values = db_connector.fetch_matrix_values(configParameters["numDopplerBins"],
+                                                      configParameters["numRangeBins"])
+        socketio.emit('data', {'x': rangeArray.tolist(), 'y': dopplerArray.tolist(), 'z': rdv_values.tolist(),
+                               'classification': classification_time_stamp[1]}, namespace='/')
+        time.sleep(0.5)
 
 
 @app.route('/')
-def occupancy_results():
-    conn = sqlite3.connect(f'{script_dir}/radar_database.db')
-    c = conn.cursor()
+def index():
+    return render_template('index.html')
 
-    c.execute("SELECT * FROM radar_data WHERE key_1=? AND key_2=?", ("Prediction", "Time"))
-    result = c.fetchall()[-1]
 
-    results = {
-        'Prediction': result[1],
-        'Time': result[3]
-    }
+@socketio.on('connect', namespace='/')
+def connect():
+    classification_time_stamp = db_connector.fetch_data("Prediction", "Time")[-1]
+    rdv_values = db_connector.fetch_matrix_values(configParameters["numDopplerBins"], configParameters["numRangeBins"])
+    emit('data', {'x': rangeArray.tolist(), 'y': dopplerArray.tolist(), 'z': rdv_values.tolist(),
+                  'classification': classification_time_stamp[1]})
 
-    c.execute("SELECT matrix_values FROM rdv_mat ORDER BY id DESC LIMIT 1")
-    result_2 = c.fetchall()[-1]
-    values_blob_2 = result_2[0]
 
-    # Convert the binary data back to a 2D NumPy array
-    rdv_matrix = np.frombuffer(values_blob_2, dtype=np.float32).reshape((16, 128))
-
-    rangeArray = np.array(range(configParameters["numRangeBins"])) * configParameters["rangeIdxToMeters"]
-    dopplerArray = np.multiply(
-        np.arange(-configParameters["numDopplerBins"] / 2, configParameters["numDopplerBins"] / 2),
-        configParameters["dopplerResolutionMps"])
-
-    return render_template('index.html', results=results, x=rangeArray, y=dopplerArray, z=rdv_matrix)
+@socketio.on('data', namespace='/')
+def update_data():
+    classification_time_stamp = db_connector.fetch_data("Prediction", "Time")[-1]
+    rdv_values = db_connector.fetch_matrix_values(configParameters["numDopplerBins"], configParameters["numRangeBins"])
+    emit('data',
+         {'x': rangeArray.tolist(), 'y': dopplerArray.tolist(), 'z': rdv_values.tolist(),
+          'classification': classification_time_stamp[1]})
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5050)
+    t = threading.Thread(target=emit_data)
+    t.daemon = True
+    t.start()
+    socketio.run(app, host="0.0.0.0", allow_unsafe_werkzeug=True)
