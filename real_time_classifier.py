@@ -343,7 +343,7 @@ def readAndParseData16xx(Dataport, configParameters):
                     np.arange(-configParameters["numDopplerBins"] / 2, configParameters["numDopplerBins"] / 2),
                     configParameters["dopplerResolutionMps"])
 
-                print_generator(rangeArray, dopplerArray, rangeDoppler, model_path)
+                classifier_func(rangeDoppler, model_path)
 
         # Remove already processed data
         if 0 < idX < byteBufferLength:
