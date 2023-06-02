@@ -9,7 +9,7 @@ from datetime import datetime
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
-debug = False  # prints debug text
+debug = True  # prints debug text
 
 # TO DO: Add your own config file and model path
 configFileName = f'{script_dir}/config_files/xwr16xx_profile_2023_04_18T16_04_15_382.cfg'
