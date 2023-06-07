@@ -13,7 +13,7 @@ debug = True  # prints debug text
 
 # TO DO: Add your own config file and model path
 configFileName = f'{script_dir}/config_files/xwr16xx_profile_2023_04_18T16_04_15_382.cfg'
-model_path = f"{script_dir}/saved-tflite-model/4-04-23-outdoor-rangedoppler-cfar-float16.tflite"
+model_path = f"{script_dir}/saved-tflite-model/range-doppler-model-umbc-new-float16.tflite"
 
 CLIport = {}
 Dataport = {}
@@ -44,7 +44,7 @@ def apply_2d_cfar(signal, guard_band_width, kernel_size, threshold_factor):
 def classifier_func(range_doppler, tflite_model):
     # 2D CFAR parameters
     guard_band_width = 3
-    kernel_size = 3
+    kernel_size = 5
     threshold_factor = 1
     range_doppler_cfar = apply_2d_cfar(range_doppler, guard_band_width, kernel_size, threshold_factor)
 
