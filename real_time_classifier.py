@@ -41,7 +41,21 @@ def apply_2d_cfar(signal, guard_band_width, kernel_size, threshold_factor):
     return thresholded_signal
 
 
-def classifier_func(range_doppler, tflite_model):
+def highlight_peaks(matrix, threshold):
+    rows, cols = matrix.shape
+    peaks = []
+
+    for i in range(1, rows - 1):
+        for j in range(1, cols - 1):
+            if matrix[i, j] >= threshold:
+                neighbors = matrix[i - 1:i + 2, j - 1:j + 2]
+                if matrix[i, j] == np.max(neighbors):
+                    peaks.append((i, j))
+
+    return peaks
+
+
+def classifier_func(rangeArray, range_doppler, tflite_model):
     # 2D CFAR parameters
     guard_band_width = 3
     kernel_size = 5
@@ -62,11 +76,19 @@ def classifier_func(range_doppler, tflite_model):
 
     classes = interpreter.get_tensor(output_details['index'])[0]
     pred = np.argmax(classes)
+    confidence_scores = np.squeeze(classes)
+    max_index = np.argmax(confidence_scores)
+    max_value = confidence_scores[max_index].round(3)
 
-    db = {'Prediction': classes_values[pred], 'Time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    highlighted_peaks = highlight_peaks(range_doppler, threshold=70.0)
+    highlighted_peaks_array = np.array(highlighted_peaks)
+    picked_elements = rangeArray[highlighted_peaks_array[:, 1]].round(2)
+    time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    db = {'Prediction': classes_values[pred], "Score": max_value, "Detected objects": picked_elements, 'Time': time_now}
 
     db_connector.connect()
-    db_connector.insert_data("Prediction", f"{db['Prediction']}", "Time", f"{db['Time']}")
+    db_connector.insert_data("Prediction", f"{db['Prediction']}", "Score", f"{db['Score']}", "Detected objects", f"{db['Detected objects']}", "Time", f"{db['Time']}")
     db_connector.insert_rdv_matrix(range_doppler, f"{db['Time']}")
     db_connector.close()
 
@@ -343,7 +365,7 @@ def readAndParseData16xx(Dataport, configParameters):
                     np.arange(-configParameters["numDopplerBins"] / 2, configParameters["numDopplerBins"] / 2),
                     configParameters["dopplerResolutionMps"])
 
-                classifier_func(rangeDoppler, model_path)
+                classifier_func(rangeArray, rangeDoppler, model_path)
 
         # Remove already processed data
         if 0 < idX < byteBufferLength:
