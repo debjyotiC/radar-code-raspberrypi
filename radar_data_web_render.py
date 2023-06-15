@@ -32,7 +32,8 @@ def emit_data():
 
         prediction_value = True if meta_data[1] == "human_present" else False
         score = meta_data[3]
-        detected_object_distances = list(ast.literal_eval(meta_data[5].strip().strip('[]')))
+        detected_object_distances = [float(value) for value in meta_data[5].strip("[]").split()]
+
         time_stamp = meta_data[7]
 
         socketio.emit('data', {'x': rangeArray.tolist(), 'y': dopplerArray.tolist(), 'z': rdv_values.tolist(),
