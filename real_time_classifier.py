@@ -69,7 +69,7 @@ def classifier_func(rangeArray, range_doppler, tflite_model):
     output_details = interpreter.get_output_details()[0]
 
     input_index = input_details["index"]
-    classes_values = ["human_present", "no_human_present]
+    classes_values = ["human_present", "no_human_present"]
     in_tensor = np.float32(range_doppler_cfar.reshape(1, range_doppler_cfar.shape[0], range_doppler_cfar.shape[1], 1))
     interpreter.set_tensor(input_index, in_tensor)
     interpreter.invoke()
