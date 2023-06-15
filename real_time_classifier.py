@@ -13,7 +13,7 @@ debug = True  # prints debug text
 
 # TO DO: Add your own config file and model path
 configFileName = f'{script_dir}/config_files/xwr16xx_profile_2023_04_18T16_04_15_382.cfg'
-model_path = f"{script_dir}/saved-tflite-model/range-doppler-model-umbc-new-2-float16.tflite"
+model_path = f"{script_dir}/saved-tflite-model/range-doppler-model-umbc-new-3-float16.tflite"
 
 CLIport = {}
 Dataport = {}
