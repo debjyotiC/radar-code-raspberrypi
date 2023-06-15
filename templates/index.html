@@ -223,7 +223,7 @@
                           i + 1
                         }, Distance: ${
               data.detected_object_distances[i]
-            } m.</div>
+            } ft.</div>
                       </div>`;
           }
           objectLists.innerHTML = objectListsHtml;
@@ -262,7 +262,7 @@
               class="ripple-effect"
               src="{{ url_for('static', filename='red-circle.png') }}"
               style="height: 15px; width: 15px; margin-bottom: 3px"
-            /> Human detected in the room`;
+            /> Occupied -- Human Presence detected`;
             alarmSound.play();
           } else {
             Plotly.react(
@@ -299,7 +299,7 @@
               class="ripple-effect"
               src="{{ url_for('static', filename='green-circle-icon.png') }}"
               style="height: 15px; width: 15px; margin-bottom: 3px"
-            /> Clean Room`;
+            /> Clear room - No human detected`;
 
             alarmSound.pause();
           }
