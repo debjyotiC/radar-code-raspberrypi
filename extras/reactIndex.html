@@ -1,0 +1,87 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+  <title>React in HTML</title>
+  <script src="https://unpkg.com/react@17.0.2/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@17.0.2/umd/react-dom.development.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+
+  <script type="text/babel">
+    // Define a functional component
+    const HelloWorld = () => {
+      return <h1>Hello, React!</h1>;
+    };
+  
+    // Render the component
+    ReactDOM.render(<HelloWorld />, document.getElementById('root'));
+  </script>
+  
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  </head>
+  <body>
+
+    <div id="mydiv"></div>
+
+    <script type="text/babel">
+    //   function Hello() {
+    //     return <h1>Hello World!</h1>;
+    //   }
+
+    //   const container = document.getElementById('mydiv');
+    //   const root = ReactDOM.createRoot(container);
+    //   root.render(<Hello />)
+    // Define the ContourPlot component
+    const ContourPlot = () => {
+    const data = [
+        {
+        z: [
+            [10, 10.625, 12.5, 15.625, 20],
+            [5.625, 6.25, 8.125, 11.25, 15.625],
+            [2.5, 3.125, 5, 8.125, 12.5],
+            [0.625, 1.25, 3.125, 6.25, 10.625],
+            [0, 0.625, 2.5, 5.625, 10]
+        ],
+        colorscale: 'Jet',
+        type: 'contour'
+        }
+    ];
+
+    const layout = {
+        title: 'Contour Plot',
+        xaxis: {
+        title: 'X Axis'
+        },
+        yaxis: {
+        title: 'Y Axis'
+        }
+    };
+
+    return (
+        <div>
+        <Plot data={data} layout={layout} />
+        </div>
+    );
+    };
+
+    // Render the ContourPlot component
+    // ReactDOM.render(<ContourPlot />, document.getElementById('root'));
+      const container = document.getElementById('mydiv');
+      const root = ReactDOM.createRoot(container);
+      root.render(<ContourPlot />)
+
+    </script>
+
+  </body>
+</html>
