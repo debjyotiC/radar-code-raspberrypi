@@ -87,10 +87,9 @@ def classifier_func(rangeArray, range_doppler, tflite_model):
 
     db = {'Prediction': classes_values[pred], "Score": max_value, "Detected objects": picked_elements, 'Time': time_now}
 
-    #db_connector.connect()
-    #db_connector.insert_data("Prediction", f"{db['Prediction']}", "Score", f"{db['Score']}", "Detected objects", f"{db['Detected objects']}", "Time", f"{db['Time']}")
-    #db_connector.insert_rdv_matrix(range_doppler, f"{db['Time']}")
-    #db_connector.close()
+    # db_connector.connect() db_connector.insert_data("Prediction", f"{db['Prediction']}", "Score", f"{db['Score']}",
+    # "Detected objects", f"{db['Detected objects']}", "Time", f"{db['Time']}") db_connector.insert_rdv_matrix(
+    # range_doppler, f"{db['Time']}") db_connector.close()
 
     if debug:
         print(db)
