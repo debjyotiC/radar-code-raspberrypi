@@ -427,7 +427,7 @@ while True:
             frameData[currentIndex] = detObj
             currentIndex += 1
 
-        time.sleep(0.03)  # Sampling frequency of 30 Hz
+        time.sleep(0.08)  # Sampling frequency of 80 Hz
 
     # Stop the program and close everything if Ctrl + c is pressed
     except KeyboardInterrupt:
