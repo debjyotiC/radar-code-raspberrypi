@@ -13,7 +13,7 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 debug = True  # prints debug text
 
 # TO DO: Add your own config file and model path
-configFileName = f'{script_dir}config_files/xwr16xx_UMBC_indoor.cfg'
+configFileName = f'{script_dir}/config_files/xwr16xx_UMBC_indoor.cfg'
 model_path = f"{script_dir}/saved-tflite-model/umbc_indoor_cfar_denoised_float16.tflite"
 
 CLIport = {}
