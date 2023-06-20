@@ -77,9 +77,9 @@ def classifier_func(rangeArray, range_doppler, tflite_model):
     kernel_size = 5
     threshold_factor = 1
     # denoise the RVD matrix
-    range_doppler_denoised = wavelet_denoising(range_doppler, wavelet='haar', value=2.5)
+    # range_doppler_denoised = wavelet_denoising(range_doppler, wavelet='haar', value=2.5)
     # Calc. CFAR on denoised RDV
-    range_doppler_cfar = apply_2d_cfar(range_doppler_denoised, guard_band_width, kernel_size, threshold_factor)
+    range_doppler_cfar = apply_2d_cfar(range_doppler, guard_band_width, kernel_size, threshold_factor)
 
     interpreter = tf.lite.Interpreter(model_path=tflite_model)
     interpreter.allocate_tensors()
