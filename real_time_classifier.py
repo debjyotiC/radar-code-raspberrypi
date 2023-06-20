@@ -85,7 +85,12 @@ def classifier_func(rangeArray, range_doppler, tflite_model):
     picked_elements = rangeArray[highlighted_peaks_array[:, 1]].round(2)
     time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    db = {'Prediction': classes_values[pred], "Score": max_value, "Detected objects": picked_elements, 'Time': time_now}
+    predicted_class = classes_values[pred]
+
+    if predicted_class == "human_present":
+        db = {'Prediction': predicted_class, "Score": max_value, "Detected objects": picked_elements, 'Time': time_now}
+    else:
+        db = {'Prediction': predicted_class, "Score": max_value, "Detected objects": [], 'Time': time_now}
 
     db_connector.connect()
     db_connector.insert_data("Prediction", f"{db['Prediction']}", "Score", f"{db['Score']}", "Detected objects",
