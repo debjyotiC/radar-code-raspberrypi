@@ -5,6 +5,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 from database_class import DatabaseConnector
 import os
+import pywt
 from datetime import datetime
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +25,20 @@ db_connector = DatabaseConnector("radar_database.db")
 
 
 # ------------------------------------------------------------------
+def wavelet_denoising(data, wavelet='db4', value=0.5):
+    # Perform the wavelet transform.
+    coefficients = pywt.wavedec2(data, wavelet)
+
+    # Threshold the coefficients.
+    threshold = pywt.threshold(coefficients[0], value=value)
+    coefficients[0] = pywt.threshold(coefficients[0], threshold)
+
+    # Inverse wavelet transform.
+    denoised_data = pywt.waverec2(coefficients, wavelet)
+
+    return denoised_data
+
+
 def apply_2d_cfar(signal, guard_band_width, kernel_size, threshold_factor):
     num_rows, num_cols = signal.shape
     thresholded_signal = np.zeros((num_rows, num_cols))
@@ -60,7 +75,8 @@ def classifier_func(rangeArray, range_doppler, tflite_model):
     guard_band_width = 3
     kernel_size = 5
     threshold_factor = 1
-    range_doppler_cfar = apply_2d_cfar(range_doppler, guard_band_width, kernel_size, threshold_factor)
+    range_doppler_denoised = wavelet_denoising(range_doppler, wavelet='haar', value=2.5)
+    range_doppler_cfar = apply_2d_cfar(range_doppler_denoised, guard_band_width, kernel_size, threshold_factor)
 
     interpreter = tf.lite.Interpreter(model_path=tflite_model)
     interpreter.allocate_tensors()
