@@ -17,23 +17,23 @@ class DatabaseConnector:
             self.conn.close()
             self.conn = None
 
-    def fetch_data(self, key1, key2):
+    def fetch_data(self, key1, key2, key3, key4):
         with self.lock:  # Acquire the lock before accessing the database
             conn = sqlite3.connect(self.db_file)
-            query = "SELECT * FROM radar_data WHERE key_1=? AND key_2=?"
+            query = "SELECT * FROM radar_data WHERE key_1=? AND key_2=? AND key_3=? AND key_4=?"
             cursor = conn.cursor()
-            cursor.execute(query, (key1, key2))
+            cursor.execute(query, (key1, key2, key3, key4))
             rows = cursor.fetchall()
             cursor.close()
             conn.close()
             return rows
 
-    def fetch_updated_data(self, key1, key2):
+    def fetch_updated_data(self, key1, key2, key3, key4):
         with self.lock:
             conn = sqlite3.connect(self.db_file)
-            query = "SELECT * FROM radar_data WHERE key_1=? AND key_2=?"
+            query = "SELECT * FROM radar_data WHERE key_1=? AND key_2=? AND key_3=? AND key_4=?"
             cursor = conn.cursor()
-            cursor.execute(query, (key1, key2))
+            cursor.execute(query, (key1, key2, key3, key4))
             conn.commit()
             rows = cursor.fetchall()
             cursor.close()
@@ -72,12 +72,12 @@ class DatabaseConnector:
             else:
                 return None
 
-    def insert_data(self, key1, value1, key2, value2):
+    def insert_data(self, key1, value1, key2, value2, key3, value3, key4, value4):
         with self.lock:
             conn = sqlite3.connect(self.db_file)
-            query = "INSERT INTO radar_data VALUES (?, ?, ?, ?)"
+            query = "INSERT INTO radar_data VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
             cursor = conn.cursor()
-            cursor.execute(query, (key1, value1, key2, value2))
+            cursor.execute(query, (key1, value1, key2, value2, key3, value3, key4, value4))
             conn.commit()
             cursor.close()
             conn.close()

@@ -2,6 +2,7 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 import numpy as np
 import time
+import ast
 import threading
 from database_class import DatabaseConnector
 
@@ -25,34 +26,26 @@ dopplerArray = np.multiply(
 
 def emit_data():
     while True:
-        classification_time_stamp = db_connector.fetch_data("Prediction", "Time")[-1]
         rdv_values = db_connector.fetch_matrix_values(configParameters["numDopplerBins"],
                                                       configParameters["numRangeBins"])
+        meta_data = db_connector.fetch_data("Prediction", "Score", "Detected objects", "Time")[-1]
+
+        prediction_value = True if meta_data[1] == "human_present" else False
+        score = meta_data[3]
+        detected_object_distances = [float(value) for value in meta_data[5].strip("[]").split()]
+
+        time_stamp = meta_data[7]
+
         socketio.emit('data', {'x': rangeArray.tolist(), 'y': dopplerArray.tolist(), 'z': rdv_values.tolist(),
-                               'classification': classification_time_stamp[1]}, namespace='/')
-        time.sleep(0.5)
+                               'classification': prediction_value,
+                               'detected_object_distances': detected_object_distances,
+                               'time_stamp': time_stamp}, namespace='/')
+        time.sleep(0.1)
 
 
 @app.route('/')
 def index():
     return render_template('index.html')
-
-
-@socketio.on('connect', namespace='/')
-def connect():
-    classification_time_stamp = db_connector.fetch_data("Prediction", "Time")[-1]
-    rdv_values = db_connector.fetch_matrix_values(configParameters["numDopplerBins"], configParameters["numRangeBins"])
-    emit('data', {'x': rangeArray.tolist(), 'y': dopplerArray.tolist(), 'z': rdv_values.tolist(),
-                  'classification': classification_time_stamp[1]})
-
-
-@socketio.on('data', namespace='/')
-def update_data():
-    classification_time_stamp = db_connector.fetch_data("Prediction", "Time")[-1]
-    rdv_values = db_connector.fetch_matrix_values(configParameters["numDopplerBins"], configParameters["numRangeBins"])
-    emit('data',
-         {'x': rangeArray.tolist(), 'y': dopplerArray.tolist(), 'z': rdv_values.tolist(),
-          'classification': classification_time_stamp[1]})
 
 
 if __name__ == '__main__':

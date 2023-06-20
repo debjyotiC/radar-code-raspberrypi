@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+
+    <link rel="icon" type="image/png" href="./static/radar-removebg.png" />
+
+    <title>mmWave RADAR</title>
+
+    <!-- Required Stylesheets -->
+    <link
+      type="text/css"
+      rel="stylesheet"
+      href="./static/bootstrap@5.3.0.css"
+    />
+    <link
+      type="text/css"
+      rel="stylesheet"
+      href="./static/bootstrap-vue@2.23.1.css"
+    />
+
+    <!-- Load polyfills to support older browsers -->
+    <!-- <script src="https://polyfill.io/v3/polyfill.min.js?features=es2015%2CIntersectionObserver"></script> -->
+
+    <!-- Required scripts -->
+    <script src="./static/vue.js"></script>
+    <script src="./static/bootstrap-vue@2.23.1.js"></script>
+    <script src="./static/bootstrap-vue-icons.min.js"></script>
+    <script src="./static/plotly-2.20.0.min.js"></script>
+    <script src="./static/socket.io.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/sqlite3@5.1.6/lib/sqlite3-binding.min.js"></script> -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/0.3.2/js/sql.js"
+      integrity="sha512-oPc+qFCHM3DkxsNn2OtJzS3NS8Nkl87XGsOPsJmBYEeQkyEfVaKetewEjOg9le9kAMftoE7Y0WtMtAsko/v4mw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <!-- <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+      integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN"
+      crossorigin="anonymous"
+    /> -->
+    <style>
+      @keyframes ripple-animation {
+        0% {
+          opacity: 0.3;
+          transform: "scale(.5)";
+        }
+        25% {
+          opacity: 0.5;
+          transform: "scale(.75)";
+        }
+        50% {
+          opacity: 1;
+          transform: "scale(1.2)";
+        }
+        75% {
+          opacity: 0.5;
+          transform: "scale(.75)";
+        }
+        100% {
+          opacity: 0.3;
+          transform: "scale(.5)";
+        }
+      }
+
+      .ripple-effect {
+        animation: ripple-animation 2s linear infinite;
+      }
+
+      .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .chat-messages {
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .message {
+        margin: 10px;
+        padding: 10px;
+        border-radius: 10px;
+      }
+
+      .received {
+        background-color: #f2f2f2;
+      }
+
+      .message-content-date {
+        font-size: 0.6rem;
+      }
+
+      .sent {
+        background-color: #cceeff;
+      }
+
+      .chat-input {
+        padding: 10px;
+      }
+
+      .message {
+        width: 90%;
+        border-radius: 10px;
+        /* padding: 0.5em; */
+        /*   margin-bottom: .5em; */
+        font-size: 0.9em;
+      }
+      .message-out {
+        background: #b5c4e2;
+        color: white;
+        margin-left: 50%;
+      }
+      .message-in {
+        background: #f1f1f0;
+        color: black;
+      }
+      .scrollable-card {
+        max-height: 450px; /* adjust the height as needed */
+        overflow-y: auto; /* or overflow-y: scroll; */
+      }
+    </style>
+  </head>
+
+  <body style="background-color: #f0f0f0">
+    <!-- Our application root element -->
+    <div id="app">
+      <b-navbar type="dark" variant="primary">
+        <b-navbar-brand href="#"
+          >&nbsp;<img width="50px" src="./static/radar-removebg.png" /> mmWave
+          RADAR
+        </b-navbar-brand>
+
+        <!-- <b-navbar-brand href="#" right> mmWave RADAR </b-navbar-brand> -->
+      </b-navbar>
+
+      <b-container fluid>
+        <!-- <b-row>
+          <b-col cols="10" align-v="center" offset="1">
+            <div style="margin-top: 20px">
+              <div v-if="!preLoader">
+                <b-card no-body>
+                  <div id="plotly-container"></div>
+                </b-card>
+                <div class="row" style="margin-top: 20px">
+                  <div class="col">
+                    <b-icon
+                      icon="circle-fill"
+                      :variant="isConnect ? 'success' : 'danger'"
+                      class="ripple-effect"
+                      style="width: 20px; height: 20px"
+                    ></b-icon>
+                    &nbsp; {{classification}}
+                  </div>
+                  <div class="col d-flex justify-content-end">
+                    Timestamp : {{new Date().toLocaleString()}}
+                  </div>
+                </div>
+              </div>
+              <div v-else>
+                <b-card no-body>
+                  <b-row>
+                    <b-col cols="12">
+                      <b-skeleton-img no-aspect height="350px"></b-skeleton-img>
+                    </b-col>
+                  </b-row>
+                </b-card>
+                <div class="row" style="margin-top: 20px">
+                  <div class="col">
+                    <b-skeleton
+                      type="avatar"
+                      width="20px"
+                      height="20px"
+                    ></b-skeleton>
+                  </div>
+                  <div class="col d-flex justify-content-end">
+                    <b-skeleton width="35%"></b-skeleton>
+                  </div>
+                </div>
+              </div>
+
+              <div class="chat-container">
+                <div class="chat-messages">
+                  <div
+                    v-for="message in messages"
+                    :key="message.id"
+                    :class="['message', message.type]"
+                  >
+                    <div class="message-content">{{ message.content }}</div>
+                  </div>
+                </div>
+
+                <div class="chat-input">
+                  <b-form @submit="sendMessage">
+                    <b-input-group>
+                      <b-form-input
+                        v-model="newMessage"
+                        placeholder="Type your message..."
+                        required
+                      ></b-form-input>
+                      <b-input-group-append>
+                        <b-button type="submit" variant="primary"
+                          >Send</b-button
+                        >
+                      </b-input-group-append>
+                    </b-input-group>
+                  </b-form>
+                </div>
+              </div>
+            </div>
+          </b-col>
+        </b-row> -->
+
+        <b-row style="margin-top: 20px">
+          <b-col xs="12" sm="12" md="10" class="offset-md-1 offset-lg-1">
+            <b-row>
+              <b-col xs="12" sm="10" md="9">
+                <div v-if="!preLoader">
+                  <b-card no-body border-variant="dark">
+                    <div id="plotly-container"></div>
+                  </b-card>
+                  <div class="row" style="margin-top: 20px">
+                    <div class="col">
+                      <b-icon
+                        icon="circle-fill"
+                        :variant="isConnect ? 'success' : 'danger'"
+                        class="ripple-effect"
+                        style="width: 20px; height: 20px"
+                      ></b-icon>
+                      &nbsp; {{classification}}
+                    </div>
+                    <div class="col d-flex justify-content-end">
+                      Timestamp : {{new Date().toLocaleString()}}
+                    </div>
+                  </div>
+                </div>
+                <div v-else>
+                  <b-card no-body>
+                    <b-row>
+                      <b-col cols="12">
+                        <b-skeleton-img
+                          no-aspect
+                          height="350px"
+                        ></b-skeleton-img>
+                      </b-col>
+                    </b-row>
+                  </b-card>
+                  <div class="row" style="margin-top: 20px">
+                    <div class="col">
+                      <b-skeleton
+                        type="avatar"
+                        width="20px"
+                        height="20px"
+                      ></b-skeleton>
+                    </div>
+                    <div class="col d-flex justify-content-end">
+                      <b-skeleton width="35%"></b-skeleton>
+                    </div>
+                  </div>
+                </div>
+              </b-col>
+              <b-col xs="12" sm="12" md="3">
+                <b-card
+                  border-variant="primary"
+                  header="Live Status"
+                  header-bg-variant="primary"
+                  header-text-variant="white"
+                  align="center"
+                  no-body
+                  style="height: 450px"
+                >
+                  <div class="chat-container scrollable-card">
+                    <div class="chat-messages">
+                      <div
+                        v-for="obj in objects"
+                        :key="obj.id"
+                        :class="['message', 'sent']"
+                      >
+                        <div class="message-content">
+                          Objects : {{ obj.id }}
+                        </div>
+                        <div class="message-content">
+                          Distance : {{ obj.distance }}
+                        </div>
+                        <div class="message-content-date">
+                          On {{new Date().toLocaleString()}}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- <p v-for="message in messages" class="message message-in">
+                    {{ message.content }}
+                  </p> -->
+                </b-card>
+              </b-col>
+            </b-row>
+          </b-col>
+        </b-row>
+      </b-container>
+    </div>
+
+    <script>
+      const playAlarm = new Audio("./static/alarm.mp3");
+      window.app = new Vue({
+        el: "#app",
+        data: {
+          messages: [
+            // { id: 1, content: "Hello", type: "received" },
+            // { id: 2, content: "How are you?", type: "received" },
+            // { id: 3, content: "I'm fine, thank you.", type: "sent" },
+            // { id: 4, content: "I'm fine, thank you.", type: "sent" },
+            // { id: 5, content: "I'm fine, thank you.", type: "sent" },
+            // { id: 6, content: "I'm fine, thank you.", type: "sent" },
+            // { id: 7, content: "I'm fine, thank you.", type: "sent" },
+            // { id: 8, content: "I'm fine, thank you.", type: "sent" },
+            // { id: 9, content: "I'm fine, thank you.", type: "sent" },
+            // { id: 10, content: "I'm fine, thank you.", type: "sent" },
+          ],
+          objects: [],
+          newMessage: "",
+          datas: [],
+          classification: "",
+          isConnect: false,
+          preLoader: false,
+          layout: {
+            title: {
+              text: "Range-Doppler Plot",
+            },
+            autosize: true,
+            margin: { t: 50, r: 20, b: 20, l: 50, pad: 1 },
+            xaxis: {
+              automargin: true,
+              title: {
+                text: "Range (m)",
+                standoff: 25,
+              },
+              titlefont: {
+                size: 16,
+                color: "#333",
+              },
+            },
+            yaxis: {
+              automargin: true,
+              title: {
+                text: "Doppler velocity (m/s^2)",
+                standoff: 10,
+              },
+              titlefont: {
+                size: 16,
+                color: "#333",
+              },
+            },
+          },
+          db: null,
+          queryResults: [],
+          // z: [
+          //   [0.1, 0.3, 0.5, 0.7, 0.9],
+          //   [0.2, 0.4, 0.6, 0.8, 1.0],
+          //   [0.3, 0.5, 0.7, 0.9, 1.1],
+          //   [0.4, 0.6, 0.8, 1.0, 1.2],
+          //   [0.5, 0.7, 0.9, 1.1, 1.3],
+          // ],
+          // colorscale: [
+          //   [0, "rgb(255, 0, 0)"], // Red
+          //   [0.33, "rgb(0, 255, 0)"], // Green
+          //   [0.67, "rgb(0, 0, 255)"], // Blue
+          //   [1, "rgb(255, 255, 0)"], // Yellow
+          // ],
+        },
+        async created() {
+          // setInterval(() => {
+          //   const data = [
+          //     {
+          //       x: this.createRandom(150),
+          //       y: this.createRandom(15),
+          //       mode: "markers",
+          //     },
+          //   ];
+          //   Plotly.react("plotly-container", data, this.layout);
+          // }, 5000);
+          // this.alarmAudio.play();
+          // setTimeout(() => {
+          //   this.playAudio();
+          // }, 5000);
+          // --------------------------------------
+          // await this.loadDatabase();
+        },
+        mounted() {
+          // // Plotly code goes here
+          // const data = [
+          //   {
+          //     x: [50, 60, 70, 80, 90, 150, 110, 120, 130, 140, 150],
+          //     y: [7, 8, 8, 9, 9, 13, 10, 11, 14, 14, 15],
+          //     mode: "markers",
+          //   },
+          // ];
+          // const layout = {
+          //   title: "Plotly Chart",
+          // };
+          // Plotly.newPlot("plotly-container", data, this.layout);
+          // ------------------------------Socket---------------------
+          // Connect to the socket server
+          const socket = io(`http://${document.domain}:${location.port}`);
+          // Handle socket events
+          socket.on("connect", (data) => {
+            console.log("Socket connected", data);
+            // const x = data.x;
+            // const y = data.y;
+            // const z = data.z;
+            // this.isConnect = true;
+            // this.classification = data.classification;
+            // const occupied = classification === "occupied_room" ? true : false;
+            // Plotly.react(
+            //   "plotly-container",
+            //   [{ x: x, y: y, z: z, type: "contour", colorscale: "Viridis" }],
+            //   this.layout
+            // );
+            // if (classification === "occupied_room") {
+            //   playAlarm.play();
+            // } else {
+            //   playAlarm.pause();
+            // }
+          });
+          socket.on("connect_error", (err) => {
+            console.log("Socket Connection Error", err);
+            // this.isConnect = false;
+            // this.classification = "Network Connection Error";
+          });
+          socket.on("disconnect", () => {
+            console.log("Socket disconnected");
+            // this.isConnect = false;
+            // this.classification = "Socket Disconnection Error";
+          });
+          // ---------------------------------------------------------
+          // this.createRandomRaderData();
+          // ---------------------------------------------------------
+          // setTimeout(() => {
+          //   this.queryDatabase();
+          // }, 5000);
+        },
+        // computed: {},
+        methods: {
+          // loadDatabase() {
+          //   console.log("Here 1");
+          //   // Load the SQLite database file
+          //   const xhr = new XMLHttpRequest();
+          //   xhr.open("GET", "../radar_database.db", true);
+          //   xhr.responseType = "arraybuffer";
+          //   xhr.onload = () => {
+          //     const data = new Uint8Array(xhr.response);
+          //     const db = new SQL.Database(data);
+          //     this.db = db;
+          //     console.log("Here 2", db);
+          //   };
+          //   xhr.send();
+          // },
+          // queryDatabase() {
+          //   console.log("here 9");
+          //   if (this.db) {
+          //     console.log("Here 3", this.db);
+          //     // Run your SQL query on the database
+          //     const results = this.db.exec("SELECT * FROM Prediction");
+          //     // this.queryResults = results[0].values;
+          //     console.log("here results", JSON.stringify(results));
+          //   }
+          // },
+          sendMessage() {
+            if (this.newMessage) {
+              this.messages.push({
+                id: this.messages.length + 1,
+                content: this.newMessage,
+                type: "sent",
+              });
+              this.newMessage = "";
+            }
+          },
+          createRandom(max) {
+            let array = [];
+            for (let i = 0; i < 12; i++) {
+              const randomNumber = Math.floor(Math.random() * max) + 1;
+              array.push(randomNumber);
+            }
+            console.log("arr-", max, JSON.stringify(array));
+            return array;
+          },
+          create2D(n) {
+            console.log("hhhh", n);
+            let arr = [];
+            for (let i = 0; i < n; i++) {
+              // console.log(i);
+              let x = Math.floor(Math.random() * (16 - 0 + 1)) + 0;
+              let y = Math.floor(Math.random() * (16 - 0 + 1)) + 0;
+              arr.push([x, y]);
+            }
+
+            return arr;
+          },
+          createRandomObjects() {
+            let n = Math.floor(Math.random() * 3) + 1;
+            let objs = [];
+            for (let i = 0; i < n; i++) {
+              objs.push({
+                id: Math.floor(Math.random() * 20) + 1,
+                distance: Math.floor(Math.random() * 100) + 1,
+              });
+            }
+            return objs;
+          },
+          createRandomRaderData() {
+            setInterval(() => {
+              const x = this.createRandom(16);
+              const y = this.createRandom(16);
+              const z = this.create2D(16);
+              this.objects = this.createRandomObjects();
+              // console.log("x - y - z", x, y, z);
+              Plotly.react(
+                "plotly-container",
+                [{ x: x, y: y, z: z, type: "contour", colorscale: "reds" }],
+                this.layout
+              );
+            }, 5000);
+          },
+        },
+      });
+    </script>
+  </body>
+</html>

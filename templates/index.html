@@ -1,147 +1,326 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>RADAR Occupancy Results</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='radar.png') }}">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.1/socket.io.js"></script>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      src="{{ url_for('static', filename='radar-removebg.png') }}"
+    />
+
+    <link
+      type="text/css"
+      rel="stylesheet"
+      href="{{ url_for('static', filename='bootstrap@5.3.0.css') }}"
+    />
+
+    <script src="{{ url_for('static', filename='bootstrap@5.3.0.js') }}"></script>
+    <script src="{{ url_for('static', filename='socket.io.js') }}"></script>
+    <script src="{{ url_for('static', filename='plotly-2.20.0.min.js') }}"></script>
+
     <style>
-        body, html {
-            height: 100%;
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
+      @keyframes ripple-animation {
+        0% {
+          opacity: 0.3;
+          transform: "scale(.5)";
         }
+        25% {
+          opacity: 0.5;
+          transform: "scale(.75)";
+        }
+        50% {
+          opacity: 1;
+          transform: "scale(1.2)";
+        }
+        75% {
+          opacity: 0.5;
+          transform: "scale(.75)";
+        }
+        100% {
+          opacity: 0.3;
+          transform: "scale(.5)";
+        }
+      }
 
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            justify-content: center;
-            height: 70vh;
-            padding: 20px;
-        }
+      .ripple-effect {
+        animation: ripple-animation 2s linear infinite;
+      }
 
-        #box {
-            margin-bottom: 20px;
-            height: 50px;
-            width: 100%;
-            border: 1px solid black;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            background-color: green;
-            color: white;
-        }
+      .scrollable-card {
+        max-height: 450px; /* adjust the height as needed */
+        overflow-y: auto; /* or overflow-y: scroll; */
+      }
+      .chat-container {
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+      }
 
-        #contourPlot {
-            flex: 1;
-            height: 50%;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: #fff;
-        }
+      .message-list {
+        /* height: 400px; */
+        overflow-y: auto;
+        margin-bottom: 10px;
+      }
 
-        #timestamp {
-            text-align: center;
-            font-size: 18px;
-            color: #666;
-            margin-top: 20px;
-        }
+      .message {
+        /* display: flex; */
+        margin-bottom: 10px;
+      }
 
-        /* Mobile-friendly adjustments */
-        @media (max-width: 768px) {
-            .container {
-                height: 100%;
-            }
-            #contourPlot {
-                height: 60%;
-            }
-            #box {
-                height: 40px;
-            }
-        }
+      .message-content {
+        background-color: #eee;
+        padding: 8px;
+        border-radius: 5px;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body style="background-color: #f0f0f0">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container">
+        <a class="navbar-brand" href="#">
+          <img
+            src="{{ url_for('static', filename='radar-removebg.png') }}"
+            alt="Logo"
+            width="30"
+            height="30"
+            class="d-inline-block align-text-top"
+          />
+          &nbsp; mmWave RADAR
+        </a>
+      </div>
+    </nav>
+
     <div class="container">
-        <div id="box" class="box"></div>
-        <div id="contourPlot"></div>
-        <div id="timestamp"></div>
+      <div class="row" style="margin-top: 20px">
+        <div class="col offset-xs-1">
+          <div class="row">
+            <div class="col-sm-12 col-md-9">
+              <div class="card border-dark">
+                <div class="card-body">
+                  <div id="plotly-container"></div>
+                  <div class="row" style="margin: 5px 0px 0px 0px">
+                    <div class="col">
+                      <div id="iconWithMsg"></div>
+                    </div>
+                    <div class="col d-flex justify-content-end">
+                      <div id="timestamp"></div>
+                      &nbsp;&nbsp;&nbsp;
+                      <div id="showNoSound"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-12 col-md-3">
+              <div
+                class="card text-bg-light mb-3 border-primary"
+                style="height: 512px"
+              >
+                <div class="card-header text-center text-bg-primary">
+                  <img
+                    class="ripple-effect"
+                    src="{{ url_for('static', filename='green-circle-icon.png') }}"
+                    style="height: 15px; width: 15px; margin-bottom: 3px"
+                  />
+                  Live Status
+                </div>
+                <div class="card-body scrollable-card">
+                  <h6 class="card-title">
+                    <div id="noOfObjects"></div>
+                  </h6>
+                  <div class="row">
+                    <div class="message-list">
+                      <div class="message"></div>
+                      <div id="objectLists"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <audio src="{{ url_for('static', filename='alarm.mp3') }}" id="alarmSound"></audio>
+
+    <audio
+      id="alarmSound"
+      src="{{ url_for('static', filename='alarm.mp3') }}"
+    ></audio>
     <script type="text/javascript">
-        var socket = io.connect('http://' + document.domain + ':' + location.port);
+      window.onload = function () {
+        var iconWithMsg = document.getElementById("iconWithMsg");
         var alarmSound = document.getElementById("alarmSound");
-        var isAlarmPlaying = false;
+        var objectLists = document.getElementById("objectLists");
+        var noOfObjects = document.getElementById("noOfObjects");
 
-        socket.on('data', function(data) {
-            var x = data.x;
-            var y = data.y;
-            var z = data.z;
-            var classification = data.classification;
+        var showNoSound = document.getElementById("showNoSound");
 
-            // Update the contour plot
-            var trace = {
-                x: x,
-                y: y,
-                z: z,
-                type: 'contour',
-                colorscale: 'Viridis'
-            };
-            var data = [trace];
-            var layout = {
-                title: 'Range-Doppler Plot',
-                autosize: true,
-                margin: {
-                    l: 50,
-                    r: 50,
-                    b: 50,
-                    t: 50,
-                    pad: 4
-                },
-                xaxis: {
-                    title: 'Range (m)',
-                    titlefont: {
-                        size: 14,
-                        color: '#333'
-                    }
-                },
-                yaxis: {
-                    title: 'Doppler velocity (m/s^2)',
-                    titlefont: {
-                        size: 14,
-                        color: '#333'
-                    }
-                }
-            };
-            Plotly.newPlot('contourPlot', data, layout);
-
-            // Update the box element with the classification result
-            var boxElement = document.getElementById('box');
-            boxElement.innerText = classification;
-
-            // Set the box color based on the classification
-            if (classification === 'occupied_room') {
-                boxElement.style.backgroundColor = 'red';
-                alarmSound.play();
-            } else {
-                boxElement.style.backgroundColor = 'green';
-                alarmSound.pause();
-            }
-
-            // Update the timestamp
-            var timestampElement = document.getElementById('timestamp');
-            var currentDate = new Date();
-            var timestamp = 'Timestamp: ' + currentDate.toLocaleString();
-            timestampElement.innerText = timestamp;
+        showNoSound.innerHTML = `<img
+              src="{{ url_for('static', filename='silent-line-icon.png') }}"
+              style="height: 15px; width: 15px; margin-bottom: 3px"
+            />`;
+        showNoSound.addEventListener("click", function () {
+          showNoSound.innerHTML = `<img
+              src="{{ url_for('static', filename='volume-line-icon.png') }}"
+              style="height: 15px; width: 15px; margin-bottom: 3px"
+            />`;
         });
 
-        // Auto-update the plot every 1 second
-        setInterval(function() {
-            socket.emit('data');
-        }, 500);
+
+        // Additional actions...
+        var socket = io.connect(
+          "http://" + document.domain + ":" + location.port
+        );
+
+        socket.on("data", function (data) {
+          console.log("data", JSON.stringify(data));
+          var x = data.x;
+          var y = data.y;
+          var z = data.z;
+          var classification = data.classification;
+
+          var layout = {
+            title: {
+              text: "Range-Doppler Plot",
+            },
+            autosize: true,
+            margin: { t: 50, r: 20, b: 20, l: 50, pad: 1 },
+            xaxis: {
+              automargin: true,
+              title: {
+                text: "Range (m)",
+                standoff: 25,
+              },
+              titlefont: {
+                size: 16,
+                color: "#333",
+              },
+            },
+            yaxis: {
+              automargin: true,
+              title: {
+                text: "Doppler velocity (m/s^2)",
+                standoff: 10,
+              },
+              titlefont: {
+                size: 16,
+                color: "#333",
+              },
+            },
+          };
+          let noOfObject = data.detected_object_distances.length;
+          noOfObjects.innerText = `No of Object detected : ${noOfObject}`;
+
+          let objectListsHtml = ``;
+          for (let i = 0; i < noOfObject; i++) {
+            objectListsHtml += `<div class="message">
+                        <div class="message-content">Obj: ${
+                          i + 1
+                        }, Distance: ${
+              data.detected_object_distances[i]
+            } ft.</div>
+                      </div>`;
+          }
+          objectLists.innerHTML = objectListsHtml;
+
+          if (classification) {
+            Plotly.react(
+              "plotly-container",
+              [
+                {
+                  x: x,
+                  y: y,
+                  z: z,
+                  type: "contour",
+                  colorscale: [
+                    ["0.0", "#440000 "],
+                    ["0.301029995663981", "#550000"],
+                    ["0.477121254719662", "#660000"],
+                    ["0.602059991327962", "#880000"],
+                    ["0.698970004336018", "#A00000"],
+                    ["0.778151250383643", "#BB0000"],
+                    ["0.845098040014256", "#CF0000"],
+                    ["0.903089986991943", "#EF0000"],
+                    ["0.954242509439324", "#FF0000"],
+                    ["1.0", "#FFF000"],
+                  ],
+                  contours: {
+                    showlines: false,
+                    smooth: true,
+                  },
+                  showscale: false,
+                },
+              ],
+              layout
+            );
+            iconWithMsg.innerHTML = `<img
+              class="ripple-effect"
+              src="{{ url_for('static', filename='red-circle.png') }}"
+              style="height: 15px; width: 15px; margin-bottom: 3px"
+            /> Occupied -- Human Presence detected`;
+            alarmSound.play();
+          } else {
+            Plotly.react(
+              "plotly-container",
+              [
+                {
+                  x: x,
+                  y: y,
+                  z: z,
+                  type: "contour",
+                  colorscale: [
+                    ["0.0", "#004400 "],
+                    ["0.301029995663981", "#005500"],
+                    ["0.477121254719662", "#006600"],
+                    ["0.602059991327962", "#008800"],
+                    ["0.698970004336018", "#00A000"],
+                    ["0.778151250383643", "#00BB00"],
+                    ["0.845098040014256", "#00CF00"],
+                    ["0.903089986991943", "#00EF00"],
+                    ["0.954242509439324", "#00FF00"],
+                    ["1.0", "#00FF00"],
+                  ],
+                  contours: {
+                    showlines: false,
+                    smooth: true,
+                  },
+                  showscale: false,
+                },
+              ],
+              layout
+            );
+
+            iconWithMsg.innerHTML = `<img
+              class="ripple-effect"
+              src="{{ url_for('static', filename='green-circle-icon.png') }}"
+              style="height: 15px; width: 15px; margin-bottom: 3px"
+            /> Clear room - No human detected`;
+
+            alarmSound.pause();
+          }
+
+          // Update the timestamp
+          var timestampElement = document.getElementById("timestamp");
+          timestampElement.innerText = `Timestamp : ${data.time_stamp}`;
+        });
+
+        socket.on("connect_error", (err) => {
+          console.log("Socket Connection Error", err);
+          iconWithMsg.innerHTML = `<i
+                    class="fa fa-sharp fa-solid fa-circle ripple-effect"
+                    style="color: red"
+                  ></i> Connection Error`;
+        });
+
+        socket.on("disconnect", () => {
+          console.log("Socket disconnected");
+        });
+      };
     </script>
-</body>
+  </body>
 </html>

@@ -9,11 +9,11 @@ from datetime import datetime
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
-debug = False  # prints debug text
+debug = True  # prints debug text
 
 # TO DO: Add your own config file and model path
-configFileName = f'{script_dir}/xwr16xx_profile_2023_04_18T16_04_15_382.cfg'
-model_path = f"{script_dir}/saved-tflite-model/4-04-23-outdoor-rangedoppler-cfar-float16.tflite"
+configFileName = f'{script_dir}/config_files/xwr16xx_profile_2023_04_18T16_04_15_382.cfg'
+model_path = f"{script_dir}/saved-tflite-model/range-doppler-model-umbc-new-3-float16.tflite"
 
 CLIport = {}
 Dataport = {}
@@ -41,10 +41,24 @@ def apply_2d_cfar(signal, guard_band_width, kernel_size, threshold_factor):
     return thresholded_signal
 
 
-def classifier_func(range_doppler, tflite_model):
+def highlight_peaks(matrix, threshold):
+    rows, cols = matrix.shape
+    peaks = []
+
+    for i in range(1, rows - 1):
+        for j in range(1, cols - 1):
+            if matrix[i, j] >= threshold:
+                neighbors = matrix[i - 1:i + 2, j - 1:j + 2]
+                if matrix[i, j] == np.max(neighbors):
+                    peaks.append((i, j))
+
+    return peaks
+
+
+def classifier_func(rangeArray, range_doppler, tflite_model):
     # 2D CFAR parameters
     guard_band_width = 3
-    kernel_size = 3
+    kernel_size = 5
     threshold_factor = 1
     range_doppler_cfar = apply_2d_cfar(range_doppler, guard_band_width, kernel_size, threshold_factor)
 
@@ -55,18 +69,32 @@ def classifier_func(range_doppler, tflite_model):
     output_details = interpreter.get_output_details()[0]
 
     input_index = input_details["index"]
-    classes_values = ["occupied_room", "empty_room"]
+    classes_values = ["human_present", "no_human_present"]
     in_tensor = np.float32(range_doppler_cfar.reshape(1, range_doppler_cfar.shape[0], range_doppler_cfar.shape[1], 1))
     interpreter.set_tensor(input_index, in_tensor)
     interpreter.invoke()
 
     classes = interpreter.get_tensor(output_details['index'])[0]
     pred = np.argmax(classes)
+    confidence_scores = np.squeeze(classes)
+    max_index = np.argmax(confidence_scores)
+    max_value = confidence_scores[max_index].round(3)
 
-    db = {'Prediction': classes_values[pred], 'Time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+    highlighted_peaks = highlight_peaks(range_doppler, threshold=70.0)
+    highlighted_peaks_array = np.array(highlighted_peaks)
+    picked_elements = rangeArray[highlighted_peaks_array[:, 1]].round(2)
+    time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    predicted_class = classes_values[pred]
+
+    if predicted_class == "human_present":
+        db = {'Prediction': predicted_class, "Score": max_value, "Detected objects": picked_elements, 'Time': time_now}
+    else:
+        db = {'Prediction': predicted_class, "Score": max_value, "Detected objects": [], 'Time': time_now}
 
     db_connector.connect()
-    db_connector.insert_data("Prediction", f"{db['Prediction']}", "Time", f"{db['Time']}")
+    db_connector.insert_data("Prediction", f"{db['Prediction']}", "Score", f"{db['Score']}", "Detected objects",
+                             f"{db['Detected objects']}", "Time", f"{db['Time']}")
     db_connector.insert_rdv_matrix(range_doppler, f"{db['Time']}")
     db_connector.close()
 
@@ -343,7 +371,7 @@ def readAndParseData16xx(Dataport, configParameters):
                     np.arange(-configParameters["numDopplerBins"] / 2, configParameters["numDopplerBins"] / 2),
                     configParameters["dopplerResolutionMps"])
 
-                classifier_func(rangeDoppler, model_path)
+                classifier_func(rangeArray, rangeDoppler, model_path)
 
         # Remove already processed data
         if 0 < idX < byteBufferLength:

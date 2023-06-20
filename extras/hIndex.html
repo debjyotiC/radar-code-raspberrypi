@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, shrink-to-fit=no"
+        />
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+
+        <link
+          rel="icon"
+          type="image/png"
+          href="{{ url_for('static', filename='radar-removebg.png') }}"
+        />
+  
+        <title>mmWave RADAR</title>
+        <link
+          type="text/css"
+          rel="stylesheet"
+          href="{{ url_for('static', filename='bootstrap@5.3.0.css') }}"
+        />
+        <link
+          type="text/css"
+          rel="stylesheet"
+          href="{{ url_for('static', filename='bootstrap-vue@2.23.1.css') }}"
+        />
+        <script src="{{ url_for('static', filename='vue.js') }}"></script>
+        <script src="{{ url_for('static', filename='bootstrap-vue@2.23.1.js') }}"></script>
+        <script src="{{ url_for('static', filename='bootstrap-vue-icons.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='plotly-2.20.0.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='socket.io.js') }}"></script>
+  <body>
+
+    <div id="app">hello, [[message]]</div>
+    <script>
+        const playAlarm = new Audio(
+          "{{ url_for('static', filename='alarm.mp3') }}"
+        );
+        var vm = new Vue({
+          el: "#app",
+          delimiters : ['[[', ']]'],
+          data: {
+            messages: "hello|tojson"
+          },
+          async created() {
+          },
+          mounted() {
+          },
+          methods: {
+
+          },
+        });
+      </script>
+  </body>
+</html>
