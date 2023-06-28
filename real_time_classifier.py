@@ -118,7 +118,7 @@ def classifier_func(rangeArray, range_doppler):
     if predicted_class == "human_present":
         db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": picked_elements, 'Time': time_now}
     else:
-        db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": [], 'Time': time_now}
+        db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": picked_elements, 'Time': time_now}
 
     db_connector.connect()
     db_connector.insert_data("Prediction", f"{db['Prediction']}", "Score", f"{db['Score']}", "Detected objects",
