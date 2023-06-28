@@ -108,7 +108,7 @@ def classifier_func(rangeArray, range_doppler):
     highlighted_peaks_array = np.array(highlighted_peaks)
     picked_elements = rangeArray[highlighted_peaks_array[:, 1]].round(2)
 
-    if picked_elements[1] > 0.15:
+    if np.all(picked_elements[:2] > 2):
         predicted_class = classes_values[0]
     else:
         predicted_class = classes_values[1]
