@@ -1,8 +1,7 @@
 import serial
 import time
 import numpy as np
-import tensorflow as tf
-import matplotlib.pyplot as plt
+from scipy.signal import firwin
 from database_class import DatabaseConnector
 import os
 import pywt
@@ -14,7 +13,6 @@ debug = True  # prints debug text
 
 # TO DO: Add your own config file and model path
 configFileName = f'{script_dir}/config_files/xwr16xx_profile_2023_04_18T16_04_15_382.cfg'
-model_path = f"{script_dir}/saved-tflite-model/range-doppler-model-umbc-new-3-float16.tflite"
 
 CLIport = {}
 Dataport = {}
@@ -39,21 +37,45 @@ def wavelet_denoising(data, wavelet='db4', value=0.5):
     return denoised_data
 
 
-def apply_2d_cfar(signal, guard_band_width, kernel_size, threshold_factor):
-    num_rows, num_cols = signal.shape
-    thresholded_signal = np.zeros((num_rows, num_cols))
-    for i in range(guard_band_width, num_rows - guard_band_width):
-        for j in range(guard_band_width, num_cols - guard_band_width):
-            # Estimate the noise level
-            noise_level = np.mean(np.concatenate((
-                signal[i - guard_band_width:i + guard_band_width, j - guard_band_width:j + guard_band_width].ravel(),
-                signal[i - kernel_size:i + kernel_size, j - kernel_size:j + kernel_size].ravel())))
-            # Calculate the threshold for detection
-            threshold = threshold_factor * noise_level
-            # Check if the signal exceeds the threshold
-            if signal[i, j] > threshold:
-                thresholded_signal[i, j] = 1
-    return thresholded_signal
+def pulse_doppler_filter(radar_data):
+    # Radar data dimensions: [range_bins, doppler_bins]
+    range_bins, doppler_bins = radar_data.shape
+
+    # Doppler filter length
+    filter_length = 11
+
+    # Generate filter coefficients using FIR filter design
+    filter_coeffs = firwin(filter_length, cutoff=0.2, window='hamming', fs=4.5)
+
+    # Output filtered data
+    filtered_data = np.zeros((range_bins, doppler_bins))
+
+    # Apply the pulse Doppler filter
+    for i in range(doppler_bins):
+        filtered_data[:, i] = np.convolve(radar_data[:, i], filter_coeffs, mode='same')
+
+    return filtered_data
+
+
+def create_peak_matrix(matrix, threshold):
+    peak_matrix = np.zeros_like(matrix)
+
+    rows, cols = matrix.shape
+
+    for i in range(1, rows - 1):
+        for j in range(1, cols - 1):
+            current_value = matrix[i, j]
+            neighbors = [
+                matrix[i - 1, j],  # top
+                matrix[i + 1, j],  # bottom
+                matrix[i, j - 1],  # left
+                matrix[i, j + 1]  # right
+            ]
+
+            if current_value >= np.max(neighbors) and current_value >= threshold:
+                peak_matrix[i, j] = 1
+
+    return peak_matrix
 
 
 def highlight_peaks(matrix, threshold):
@@ -70,43 +92,33 @@ def highlight_peaks(matrix, threshold):
     return peaks
 
 
-def classifier_func(rangeArray, range_doppler, tflite_model):
-    # 2D CFAR parameters
-    guard_band_width = 3
-    kernel_size = 5
-    threshold_factor = 1
-    range_doppler_denoised = wavelet_denoising(range_doppler, wavelet='haar', value=2.5)
-    range_doppler_cfar = apply_2d_cfar(range_doppler_denoised, guard_band_width, kernel_size, threshold_factor)
+def classifier_func(rangeArray, range_doppler):
+    mask = np.ones((16, 256))
+    mask[8] = 0  # make central frequencies zero
 
-    interpreter = tf.lite.Interpreter(model_path=tflite_model)
-    interpreter.allocate_tensors()
+    range_doppler_denoised = wavelet_denoising(range_doppler, wavelet='haar', value=0.7)
+    filtered_frame = pulse_doppler_filter(range_doppler_denoised) * mask
+    peaks = create_peak_matrix(filtered_frame, threshold=0.9)
 
-    input_details = interpreter.get_input_details()[0]
-    output_details = interpreter.get_output_details()[0]
+    std_peaks = np.std(peaks)
 
-    input_index = input_details["index"]
     classes_values = ["human_present", "no_human_present"]
-    in_tensor = np.float32(range_doppler_cfar.reshape(1, range_doppler_cfar.shape[0], range_doppler_cfar.shape[1], 1))
-    interpreter.set_tensor(input_index, in_tensor)
-    interpreter.invoke()
-
-    classes = interpreter.get_tensor(output_details['index'])[0]
-    pred = np.argmax(classes)
-    confidence_scores = np.squeeze(classes)
-    max_index = np.argmax(confidence_scores)
-    max_value = confidence_scores[max_index].round(3)
 
     highlighted_peaks = highlight_peaks(range_doppler, threshold=70.0)
     highlighted_peaks_array = np.array(highlighted_peaks)
     picked_elements = rangeArray[highlighted_peaks_array[:, 1]].round(2)
+
+    if picked_elements[1] > 0.15:
+        predicted_class = classes_values[0]
+    else:
+        predicted_class = classes_values[1]
+
     time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    predicted_class = classes_values[pred]
-
     if predicted_class == "human_present":
-        db = {'Prediction': predicted_class, "Score": max_value, "Detected objects": picked_elements, 'Time': time_now}
+        db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": picked_elements, 'Time': time_now}
     else:
-        db = {'Prediction': predicted_class, "Score": max_value, "Detected objects": [], 'Time': time_now}
+        db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": [], 'Time': time_now}
 
     db_connector.connect()
     db_connector.insert_data("Prediction", f"{db['Prediction']}", "Score", f"{db['Score']}", "Detected objects",
@@ -387,7 +399,7 @@ def readAndParseData16xx(Dataport, configParameters):
                     np.arange(-configParameters["numDopplerBins"] / 2, configParameters["numDopplerBins"] / 2),
                     configParameters["dopplerResolutionMps"])
 
-                classifier_func(rangeArray, rangeDoppler, model_path)
+                classifier_func(rangeArray, rangeDoppler)
 
         # Remove already processed data
         if 0 < idX < byteBufferLength:
@@ -417,7 +429,6 @@ configParameters = parseConfigFile(configFileName)
 detObj = {}
 frameData = {}
 currentIndex = 0
-fig = plt.figure()
 while True:
     try:
         dataOk, frameNumber, detObj = readAndParseData16xx(Dataport, configParameters)
@@ -427,7 +438,7 @@ while True:
             frameData[currentIndex] = detObj
             currentIndex += 1
 
-        time.sleep(0.08)  # Sampling frequency of 80 Hz
+        time.sleep(0.02)  # Sampling frequency of 20 Hz
 
     # Stop the program and close everything if Ctrl + c is pressed
     except KeyboardInterrupt:
