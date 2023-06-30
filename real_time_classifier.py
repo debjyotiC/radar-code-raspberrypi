@@ -102,7 +102,7 @@ def classifier_func(rangeArray, range_doppler):
 
     std_peaks = np.std(peaks)
 
-    classes_values = ["human_present", "no_human_present"]
+    classes_values = ["Human_Present", "No_Human_detected"]
 
     highlighted_peaks = highlight_peaks(range_doppler, threshold=70.0)
     highlighted_peaks_array = np.array(highlighted_peaks)
@@ -117,10 +117,10 @@ def classifier_func(rangeArray, range_doppler):
 
     time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    if predicted_class == "human_present":
+    if predicted_class == "Human_Present":
         db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": picked_elements, 'Time': time_now}
     else:
-        db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": picked_elements, 'Time': time_now}
+        db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": [], 'Time': time_now}
 
     db_connector.connect()
     db_connector.insert_data("Prediction", f"{db['Prediction']}", "Score", f"{db['Score']}", "Detected objects",

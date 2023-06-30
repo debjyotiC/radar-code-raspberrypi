@@ -32,7 +32,7 @@ def emit_data():
                                                       configParameters["numRangeBins"])
         meta_data = db_connector.fetch_data("Prediction", "Score", "Detected objects", "Time")[-1]
 
-        prediction_value = True if meta_data[1] == "human_present" else False
+        prediction_value = True if meta_data[1] == "Human_Present" else False
         score = meta_data[3]
         detected_object_distances = [float(value) for value in meta_data[5].strip("[]").split()]
 
