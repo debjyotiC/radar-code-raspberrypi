@@ -262,7 +262,7 @@
               class="ripple-effect"
               src="{{ url_for('static', filename='red-circle.png') }}"
               style="height: 15px; width: 15px; margin-bottom: 3px"
-            /> Occupied -- Human Presence detected`;
+            /> Human present`;
             alarmSound.play();
           } else {
             Plotly.react(
@@ -299,7 +299,7 @@
               class="ripple-effect"
               src="{{ url_for('static', filename='green-circle-icon.png') }}"
               style="height: 15px; width: 15px; margin-bottom: 3px"
-            /> Clear room - No human detected`;
+            /> No human detected`;
 
             alarmSound.pause();
           }
