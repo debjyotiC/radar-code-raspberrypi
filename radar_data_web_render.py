@@ -2,7 +2,7 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
 import numpy as np
 import time
-import ast
+import os
 import threading
 from database_class import DatabaseConnector
 
@@ -11,7 +11,9 @@ app.config['SECRET_KEY'] = 'secret'
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 socketio = SocketIO(app)
 
-db_connector = DatabaseConnector("radar_database.db")
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+db_connector = DatabaseConnector(f"{script_dir}/radar_database.db")
 db_connector.connect()
 
 configParameters = {'numDopplerBins': 16, 'numRangeBins': 256, 'rangeResolutionMeters': 0.146484375,

@@ -19,7 +19,7 @@ Dataport = {}
 byteBuffer = np.zeros(2 ** 15, dtype='uint8')
 byteBufferLength = 0
 
-db_connector = DatabaseConnector("radar_database.db")
+db_connector = DatabaseConnector(f"{script_dir}/radar_database.db")
 
 
 # ------------------------------------------------------------------
