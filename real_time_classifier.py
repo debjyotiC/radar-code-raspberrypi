@@ -137,15 +137,26 @@ def classifier_func(rangeArray, range_doppler):
 def serialConfig(configFileName):
     global CLIport
     global Dataport
-    # Open the serial ports for the configuration and the data ports
 
-    # Raspberry pi / Ubuntu add ports to dial out user group sudo usermod -a -G dialout $USER
-    CLIport = serial.Serial('/dev/ttyACM0', 115200)
-    Dataport = serial.Serial('/dev/ttyACM1', 921600)
+    port_found = False
 
-    # Windows
-    # CLIport = serial.Serial('COM6', 115200)
-    # Dataport = serial.Serial('COM7', 852272)
+    while not port_found:
+        try:
+            # Open the serial ports for the configuration and the data ports
+
+            # Raspberry Pi / Ubuntu
+            # CLIport = serial.Serial('/dev/ttyACM0', 115200)
+            # Dataport = serial.Serial('/dev/ttyACM1', 921600)
+
+            # Windows
+            CLIport = serial.Serial('COM6', 115200)
+            Dataport = serial.Serial('COM7', 852272)
+
+            port_found = True
+
+        except serial.SerialException:
+            print("Serial port not found. Retrying in 1 second...")
+            time.sleep(1)
 
     # Read the configuration file and send it to the board
     config = [line.rstrip('\r\n') for line in open(configFileName)]
@@ -155,7 +166,6 @@ def serialConfig(configFileName):
         time.sleep(0.01)
 
     return CLIport, Dataport
-
 
 # ------------------------------------------------------------------
 
