@@ -145,12 +145,12 @@ def serialConfig(configFileName):
             # Open the serial ports for the configuration and the data ports
 
             # Raspberry Pi / Ubuntu
-            # CLIport = serial.Serial('/dev/ttyACM0', 115200)
-            # Dataport = serial.Serial('/dev/ttyACM1', 921600)
+            CLIport = serial.Serial('/dev/ttyACM0', 115200)
+            Dataport = serial.Serial('/dev/ttyACM1', 921600)
 
             # Windows
-            CLIport = serial.Serial('COM6', 115200)
-            Dataport = serial.Serial('COM7', 852272)
+            # CLIport = serial.Serial('COM6', 115200)
+            # Dataport = serial.Serial('COM7', 852272)
 
             port_found = True
 
