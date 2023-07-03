@@ -5,11 +5,13 @@ import time
 import os
 import threading
 from database_class import DatabaseConnector
+from flask_cors import CORS
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-socketio = SocketIO(app)
+CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
