@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>RADAR Occupancy Results</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      src="{{ url_for('static', filename='radar-removebg.png') }}"
+    />
+
+    <link
+      type="text/css"
+      rel="stylesheet"
+      href="{{ url_for('static', filename='bootstrap@5.3.0.css') }}"
+    />
+
+    <script src="{{ url_for('static', filename='bootstrap@5.3.0.js') }}"></script>
+    <script src="{{ url_for('static', filename='socket.io.js') }}"></script>
+    <script src="{{ url_for('static', filename='plotly-2.20.0.min.js') }}"></script>
+
+    <style>
+      @keyframes ripple-animation {
+        0% {
+          opacity: 0.3;
+          transform: "scale(.5)";
+        }
+        25% {
+          opacity: 0.5;
+          transform: "scale(.75)";
+        }
+        50% {
+          opacity: 1;
+          transform: "scale(1.2)";
+        }
+        75% {
+          opacity: 0.5;
+          transform: "scale(.75)";
+        }
+        100% {
+          opacity: 0.3;
+          transform: "scale(.5)";
+        }
+      }
+
+      .ripple-effect {
+        animation: ripple-animation 2s linear infinite;
+      }
+
+      .scrollable-card {
+        max-height: 450px; /* adjust the height as needed */
+        overflow-y: auto; /* or overflow-y: scroll; */
+      }
+      .chat-container {
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        padding: 10px;
+      }
+
+      .message-list {
+        /* height: 400px; */
+        overflow-y: auto;
+        margin-bottom: 10px;
+      }
+
+      .message {
+        /* display: flex; */
+        margin-bottom: 10px;
+      }
+
+      .message-content {
+        background-color: #eee;
+        padding: 8px;
+        border-radius: 5px;
+      }
+
+      .input-container {
+        display: flex;
+        align-items: center;
+      }
+
+      .myDropdown-field {
+        margin-right: 10px;
+        border: none;
+        border-radius: 4px;
+        background-color: #f1f1f1;
+      }
+    </style>
+  </head>
+  <body style="background-color: #f0f0f0">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container">
+        <a class="navbar-brand" href="#">
+          <img
+            src="{{ url_for('static', filename='radar-removebg.png') }}"
+            alt="Logo"
+            width="30"
+            height="30"
+            class="d-inline-block align-text-top"
+          />
+          &nbsp; mmWave RADAR
+        </a>
+      </div>
+    </nav>
+
+    <div class="container">
+      <div class="row" style="margin-top: 20px">
+        <div class="col offset-xs-1">
+          <div class="row">
+            <div class="col-sm-12 col-md-9">
+              <div class="card border-dark">
+                <div class="card-body">
+                  <div id="plotly-container"></div>
+                  <div class="row" style="margin: 5px 0px 0px 0px">
+                    <div class="col">
+                      <div id="iconWithMsg"></div>
+                    </div>
+                    <div class="col d-flex justify-content-end">
+                      <div id="timestamp"></div>
+                      &nbsp;&nbsp;&nbsp;
+                      <div id="showNoSound"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card border-dark" style="margin: 10px 0px 10px 0px">
+                <div class="card-body">
+                  <div class="row" style="margin: 5px 0px 0px 0px">
+                    <div class="col">
+                      <div class="input-container">
+                        External write permission : &nbsp;
+                        <button
+                          id="button"
+                          class="submit-button"
+                          style="
+                            border-radius: 8px;
+                            background-color: #04aa6d;
+                            border: none;
+                            color: white;
+                            padding: 5px;
+                            text-align: center;
+                            text-decoration: none;
+                            display: inline-block;
+                            font-size: 16px;
+                            margin: 4px 2px;
+                          "
+                        >
+                          Ok
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-12 col-md-3">
+              <div
+                class="card text-bg-light mb-3 border-primary"
+                style="height: 512px"
+              >
+                <div class="card-header text-center text-bg-primary">
+                  <img
+                    class="ripple-effect"
+                    src="{{ url_for('static', filename='green-circle-icon.png') }}"
+                    style="height: 15px; width: 15px; margin-bottom: 3px"
+                  />
+                  Live Status
+                </div>
+                <div class="card-body scrollable-card">
+                  <h6 class="card-title">
+                    <div id="noOfObjects"></div>
+                  </h6>
+                  <div class="row">
+                    <div class="message-list">
+                      <div class="message"></div>
+                      <div id="objectLists"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <audio
+      id="alarmSound"
+      src="{{ url_for('static', filename='alarm.mp3') }}"
+    ></audio>
+    <script type="text/javascript">
+      var port = null;
+      var writer = null;
+      document.querySelector("button").addEventListener("click", async () => {
+        try {
+          console.log("navigator.serial", navigator, window);
+          window.port = await navigator.serial.requestPort();
+        } catch (err) {
+          console.log("err", err);
+        }
+        // console.log("port", port);
+        // console.log("info", await port.getInfo());
+        await port.open({ baudRate: 115200 });
+        writer = port.writable.getWriter();
+      });
+      window.onload = function () {
+        var enc = new TextEncoder();
+        var iconWithMsg = document.getElementById("iconWithMsg");
+        var alarmSound = document.getElementById("alarmSound");
+        var objectLists = document.getElementById("objectLists");
+        var noOfObjects = document.getElementById("noOfObjects");
+        var showNoSound = document.getElementById("showNoSound");
+
+        showNoSound.innerHTML = `<img
+              src="{{ url_for('static', filename='silent-line-icon.png') }}"
+              style="height: 15px; width: 15px; margin-bottom: 3px"
+            />`;
+        showNoSound.addEventListener("click", function () {
+          showNoSound.innerHTML = `<img
+              src="{{ url_for('static', filename='volume-line-icon.png') }}"
+              style="height: 15px; width: 15px; margin-bottom: 3px"
+            />`;
+        });
+
+        // Additional actions...
+        var socket = io.connect(
+          "http://" + document.domain + ":" + location.port
+          // "http://" + "192.168.99.94" + ":" + location.port
+        );
+
+        socket.on("data", function (data) {
+          // console.log("data");
+          var x = data.x;
+          var y = data.y;
+          var z = data.z;
+          var classification = data.classification;
+
+          var layout = {
+            title: {
+              text: "Range-Doppler Plot",
+            },
+            autosize: true,
+            margin: { t: 50, r: 20, b: 20, l: 50, pad: 1 },
+            xaxis: {
+              automargin: true,
+              title: {
+                text: "Range (m)",
+                standoff: 25,
+              },
+              titlefont: {
+                size: 16,
+                color: "#333",
+              },
+            },
+            yaxis: {
+              automargin: true,
+              title: {
+                text: "Doppler velocity (m/s^2)",
+                standoff: 10,
+              },
+              titlefont: {
+                size: 16,
+                color: "#333",
+              },
+            },
+          };
+          let noOfObject = data.detected_object_distances.length;
+          noOfObjects.innerText = `No of Object detected : ${noOfObject}`;
+
+          let objectListsHtml = ``;
+          for (let i = 0; i < noOfObject; i++) {
+            objectListsHtml += `<div class="message">
+                        <div class="message-content">Obj: ${i + 1}, Distance: ${
+              data.detected_object_distances[i]
+            } ft.</div>
+                      </div>`;
+          }
+          objectLists.innerHTML = objectListsHtml;
+
+          if (classification) {
+            Plotly.react(
+              "plotly-container",
+              [
+                {
+                  x: x,
+                  y: y,
+                  z: z,
+                  type: "contour",
+                  colorscale: [
+                    ["0.0", "#440000 "],
+                    ["0.301029995663981", "#550000"],
+                    ["0.477121254719662", "#660000"],
+                    ["0.602059991327962", "#880000"],
+                    ["0.698970004336018", "#A00000"],
+                    ["0.778151250383643", "#BB0000"],
+                    ["0.845098040014256", "#CF0000"],
+                    ["0.903089986991943", "#EF0000"],
+                    ["0.954242509439324", "#FF0000"],
+                    ["1.0", "#FFF000"],
+                  ],
+                  contours: {
+                    showlines: false,
+                    smooth: true,
+                  },
+                  showscale: false,
+                },
+              ],
+              layout
+            );
+            iconWithMsg.innerHTML = `<img
+              class="ripple-effect"
+              src="{{ url_for('static', filename='red-circle.png') }}"
+              style="height: 15px; width: 15px; margin-bottom: 3px"
+            /> Occupied -- Human Presence detected`;
+            try {
+              writer.write(enc.encode("detected\n"));
+            } catch (error) {
+              // console.log(error)
+            }
+            alarmSound.play();
+          } else {
+            Plotly.react(
+              "plotly-container",
+              [
+                {
+                  x: x,
+                  y: y,
+                  z: z,
+                  type: "contour",
+                  colorscale: [
+                    ["0.0", "#004400 "],
+                    ["0.301029995663981", "#005500"],
+                    ["0.477121254719662", "#006600"],
+                    ["0.602059991327962", "#008800"],
+                    ["0.698970004336018", "#00A000"],
+                    ["0.778151250383643", "#00BB00"],
+                    ["0.845098040014256", "#00CF00"],
+                    ["0.903089986991943", "#00EF00"],
+                    ["0.954242509439324", "#00FF00"],
+                    ["1.0", "#00FF00"],
+                  ],
+                  contours: {
+                    showlines: false,
+                    smooth: true,
+                  },
+                  showscale: false,
+                },
+              ],
+              layout
+            );
+
+            iconWithMsg.innerHTML = `<img
+              class="ripple-effect"
+              src="{{ url_for('static', filename='green-circle-icon.png') }}"
+              style="height: 15px; width: 15px; margin-bottom: 3px"
+            /> Clear room - No human detected`;
+
+            try {
+              writer.write(enc.encode("clean\n"));
+            } catch (error) {
+              // console.log(error)
+            }
+            alarmSound.pause();
+          }
+
+          // Update the timestamp
+          var timestampElement = document.getElementById("timestamp");
+          timestampElement.innerText = `Timestamp : ${data.time_stamp}`;
+        });
+
+        socket.on("connect_error", (err) => {
+          console.log("Socket Connection Error", err);
+          iconWithMsg.innerHTML = `<i
+                    class="fa fa-sharp fa-solid fa-circle ripple-effect"
+                    style="color: red"
+                  ></i> Connection Error`;
+        });
+
+        socket.on("disconnect", () => {
+          console.log("Socket disconnected");
+        });
+      };
+    </script>
+  </body>
+</html>

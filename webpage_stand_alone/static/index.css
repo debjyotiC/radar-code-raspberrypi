@@ -1,0 +1,59 @@
+@keyframes ripple-animation {
+    0% {
+      opacity: 0.3;
+      transform: "scale(.5)";
+    }
+    25% {
+      opacity: 0.5;
+      transform: "scale(.75)";
+    }
+    50% {
+      opacity: 1;
+      transform: "scale(1.2)";
+    }
+    75% {
+      opacity: 0.5;
+      transform: "scale(.75)";
+    }
+    100% {
+      opacity: 0.3;
+      transform: "scale(.5)";
+    }
+  }
+
+  .ripple-effect {
+    animation: ripple-animation 2s linear infinite;
+  }
+
+  .scrollable-card {
+    max-height: 450px; /* adjust the height as needed */
+    overflow-y: auto; /* or overflow-y: scroll; */
+  }
+  .chat-container {
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+  }
+
+  .message-list {
+    /* height: 400px; */
+    overflow-y: auto;
+    margin-bottom: 10px;
+  }
+
+  .message {
+    /* display: flex; */
+    margin-bottom: 10px;
+  }
+
+  .message-content {
+    background-color: #eee;
+    padding: 8px;
+    border-radius: 5px;
+  }
+
+  .submit-button{
+    border-radius: 8px;
+  }
+
+  
