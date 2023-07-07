@@ -77,6 +77,18 @@
         padding: 8px;
         border-radius: 5px;
       }
+
+      .input-container {
+        display: flex;
+        align-items: center;
+      }
+
+      .myDropdown-field {
+        margin-right: 10px;
+        border: none;
+        border-radius: 4px;
+        background-color: #f1f1f1;
+      }
     </style>
   </head>
   <body style="background-color: #f0f0f0">
@@ -113,13 +125,71 @@
                       <div id="showNoSound"></div>
                     </div>
                   </div>
+                  <hr />
+                  <div class="row" style="margin: 5px 0px 0px 0px">
+                    <div class="d-flex justify-content-center">
+                      <button
+                        id="activeBtn"
+                        type="button"
+                        class="btn btn-success"
+                      >
+                        Activate
+                      </button>
+                      &nbsp;
+                      <button
+                        id="deactiveBtn"
+                        type="button"
+                        class="btn btn-danger"
+                      >
+                        Deactivate
+                      </button>
+                      &nbsp;
+                      <button
+                        id="resetBtn"
+                        type="button"
+                        class="btn btn-primary"
+                      >
+                        Reset
+                      </button>
+                      &nbsp;
+                    </div>
+                  </div>
                 </div>
               </div>
+              <!-- <div class="card border-dark" style="margin: 10px 0px 10px 0px">
+                <div class="card-body">
+                  <div class="row" style="margin: 5px 0px 0px 0px">
+                    <div class="col">
+                      <div class="input-container">
+                        External write permission : &nbsp;
+                        <button
+                          id="button"
+                          class="submit-button"
+                          style="
+                            border-radius: 8px;
+                            background-color: #04aa6d;
+                            border: none;
+                            color: white;
+                            padding: 5px;
+                            text-align: center;
+                            text-decoration: none;
+                            display: inline-block;
+                            font-size: 16px;
+                            margin: 4px 2px;
+                          "
+                        >
+                          Ok
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div> -->
             </div>
             <div class="col-sm-12 col-md-3">
               <div
                 class="card text-bg-light mb-3 border-primary"
-                style="height: 512px"
+                style="height: 580px"
               >
                 <div class="card-header text-center text-bg-primary">
                   <img
@@ -149,85 +219,145 @@
 
     <audio
       id="alarmSound"
-      src="{{ url_for('static', filename='alarm.mp3') }}"
+      src="{{ url_for('static', filename='alarm2.mp3') }}"
+      loop
     ></audio>
     <script type="text/javascript">
-      window.onload = function () {
-        var iconWithMsg = document.getElementById("iconWithMsg");
-        var alarmSound = document.getElementById("alarmSound");
-        var objectLists = document.getElementById("objectLists");
-        var noOfObjects = document.getElementById("noOfObjects");
+      var port = null;
+      var writer = null;
+      var socket = null;
+      var noObjectPlot = null;
+      const activeBtn = document.getElementById("activeBtn");
+      const deactiveBtn = document.getElementById("deactiveBtn");
+      const resetBtn = document.getElementById("resetBtn");
+      var alarmSound = document.getElementById("alarmSound");
+      var objectLists = document.getElementById("objectLists");
+      var noOfObjects = document.getElementById("noOfObjects");
 
-        var showNoSound = document.getElementById("showNoSound");
+      var layout = {
+        title: {
+          text: "Range-Doppler Plot",
+        },
+        autosize: true,
+        margin: { t: 50, r: 20, b: 20, l: 50, pad: 1 },
+        xaxis: {
+          automargin: true,
+          title: {
+            text: "Range (m)",
+            standoff: 25,
+          },
+          titlefont: {
+            size: 16,
+            color: "#333",
+          },
+        },
+        yaxis: {
+          automargin: true,
+          title: {
+            text: "Doppler velocity (m/s^2)",
+            standoff: 10,
+          },
+          titlefont: {
+            size: 16,
+            color: "#333",
+          },
+        },
+      };
 
-        showNoSound.innerHTML = `<img
-              src="{{ url_for('static', filename='silent-line-icon.png') }}"
-              style="height: 15px; width: 15px; margin-bottom: 3px"
-            />`;
-        showNoSound.addEventListener("click", function () {
-          showNoSound.innerHTML = `<img
-              src="{{ url_for('static', filename='volume-line-icon.png') }}"
-              style="height: 15px; width: 15px; margin-bottom: 3px"
-            />`;
+      // document.querySelector("button").addEventListener("click", async () => {
+      //   try {
+      //     console.log("navigator.serial", navigator, window);
+      //     window.port = await navigator.serial.requestPort();
+      //   } catch (err) {
+      //     console.log("err", err);
+      //   }
+      //   // console.log("port", port);
+      //   // console.log("info", await port.getInfo());
+      //   await port.open({ baudRate: 115200 });
+      //   writer = port.writable.getWriter();
+      // });
+
+      document
+        .getElementById("activeBtn")
+        .addEventListener("click", async () => {
+          console.log("acrivatebtn");
+          activeBtn.disabled = true;
+          deactiveBtn.disabled = false;
+          // Additional actions...
+          socket = io.connect(
+            "http://" + document.domain + ":" + location.port
+            // "http://" + "192.168.99.94" + ":" + location.port
+          );
+          socketReceivedData();
         });
 
+      document
+        .getElementById("deactiveBtn")
+        .addEventListener("click", async () => {
+          clearReset();
+        });
 
-        // Additional actions...
-        var socket = io.connect(
-          "http://" + document.domain + ":" + location.port
-        );
+      document
+        .getElementById("resetBtn")
+        .addEventListener("click", async () => {
+          clearReset();
+          initNoDetectScreen();
+        });
+
+      function clearReset() {
+        socket.disconnect();
+        alarmSound.pause();
+        activeBtn.disabled = false;
+        deactiveBtn.disabled = true;
+        objectLists.innerHTML = "";
+        noOfObjects.innerHTML = "";
+      }
+
+      window.onload = function () {
+        deactiveBtn.disabled = true;
+        fetch("{{ url_for('static', filename='data.json') }}")
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data);
+            noObjectPlot = data;
+            initNoDetectScreen();
+          });
+      };
+
+      function socketReceivedData() {
+        var enc = new TextEncoder();
+        var iconWithMsg = document.getElementById("iconWithMsg");
+        var showNoSound = document.getElementById("showNoSound");
+        showNoSound.innerHTML = `<img
+                  src="{{ url_for('static', filename='silent-line-icon.png') }}"
+                  style="height: 15px; width: 15px; margin-bottom: 3px"
+                />`;
+        showNoSound.addEventListener("click", function () {
+          showNoSound.innerHTML = `<img
+                  src="{{ url_for('static', filename='volume-line-icon.png') }}"
+                  style="height: 15px; width: 15px; margin-bottom: 3px"
+                />`;
+        });
 
         socket.on("data", function (data) {
-          console.log("data", JSON.stringify(data));
+          // console.log("data");
           var x = data.x;
           var y = data.y;
           var z = data.z;
           var classification = data.classification;
-
-          var layout = {
-            title: {
-              text: "Range-Doppler Plot",
-            },
-            autosize: true,
-            margin: { t: 50, r: 20, b: 20, l: 50, pad: 1 },
-            xaxis: {
-              automargin: true,
-              title: {
-                text: "Range (m)",
-                standoff: 25,
-              },
-              titlefont: {
-                size: 16,
-                color: "#333",
-              },
-            },
-            yaxis: {
-              automargin: true,
-              title: {
-                text: "Doppler velocity (m/s^2)",
-                standoff: 10,
-              },
-              titlefont: {
-                size: 16,
-                color: "#333",
-              },
-            },
-          };
           let noOfObject = data.detected_object_distances.length;
           noOfObjects.innerText = `No of Object detected : ${noOfObject}`;
-
           let objectListsHtml = ``;
           for (let i = 0; i < noOfObject; i++) {
             objectListsHtml += `<div class="message">
-                        <div class="message-content">Obj: ${
-                          i + 1
-                        }, Distance: ${
+                            <div class="message-content">Obj: ${
+                              i + 1
+                            }, Distance: ${
               data.detected_object_distances[i]
             } ft.</div>
-                      </div>`;
+                          </div>`;
           }
           objectLists.innerHTML = objectListsHtml;
-
           if (classification) {
             Plotly.react(
               "plotly-container",
@@ -259,11 +389,17 @@
               layout
             );
             iconWithMsg.innerHTML = `<img
-              class="ripple-effect"
-              src="{{ url_for('static', filename='red-circle.png') }}"
-              style="height: 15px; width: 15px; margin-bottom: 3px"
-            /> Human present`;
+                  class="ripple-effect"
+                  src="{{ url_for('static', filename='red-circle.png') }}"
+                  style="height: 15px; width: 15px; margin-bottom: 3px"
+                /> Human Present`;
+            // try {
+            //   writer.write(enc.encode("detected\n"));
+            // } catch (error) {
+            //   // console.log(error)
+            // }
             alarmSound.play();
+            socket.disconnect();
           } else {
             Plotly.react(
               "plotly-container",
@@ -294,33 +430,70 @@
               ],
               layout
             );
-
             iconWithMsg.innerHTML = `<img
-              class="ripple-effect"
-              src="{{ url_for('static', filename='green-circle-icon.png') }}"
-              style="height: 15px; width: 15px; margin-bottom: 3px"
-            /> No human detected`;
-
+                  class="ripple-effect"
+                  src="{{ url_for('static', filename='green-circle-icon.png') }}"
+                  style="height: 15px; width: 15px; margin-bottom: 3px"
+                /> Clear room - No human detected`;
+            // try {
+            //   writer.write(enc.encode("clean\n"));
+            // } catch (error) {
+            //   // console.log(error)
+            // }
             alarmSound.pause();
           }
-
           // Update the timestamp
           var timestampElement = document.getElementById("timestamp");
           timestampElement.innerText = `Timestamp : ${data.time_stamp}`;
         });
-
         socket.on("connect_error", (err) => {
           console.log("Socket Connection Error", err);
           iconWithMsg.innerHTML = `<i
-                    class="fa fa-sharp fa-solid fa-circle ripple-effect"
-                    style="color: red"
-                  ></i> Connection Error`;
+                        class="fa fa-sharp fa-solid fa-circle ripple-effect"
+                        style="color: red"
+                      ></i> Connection Error`;
         });
-
         socket.on("disconnect", () => {
           console.log("Socket disconnected");
         });
-      };
+      }
+
+      function initNoDetectScreen() {
+        Plotly.react(
+          "plotly-container",
+          [
+            {
+              x: noObjectPlot.x,
+              y: noObjectPlot.y,
+              z: noObjectPlot.z,
+              type: "contour",
+              colorscale: [
+                ["0.0", "#004400 "],
+                ["0.301029995663981", "#005500"],
+                ["0.477121254719662", "#006600"],
+                ["0.602059991327962", "#008800"],
+                ["0.698970004336018", "#00A000"],
+                ["0.778151250383643", "#00BB00"],
+                ["0.845098040014256", "#00CF00"],
+                ["0.903089986991943", "#00EF00"],
+                ["0.954242509439324", "#00FF00"],
+                ["1.0", "#00FF00"],
+              ],
+              contours: {
+                showlines: false,
+                smooth: true,
+              },
+              showscale: false,
+            },
+          ],
+          layout
+        );
+        iconWithMsg.innerHTML = `<img
+              class="ripple-effect"
+              src="../static/green-circle-icon.png"
+              style="height: 15px; width: 15px; margin-bottom: 3px"
+            /> No Human detected`;
+      }
     </script>
   </body>
 </html>
