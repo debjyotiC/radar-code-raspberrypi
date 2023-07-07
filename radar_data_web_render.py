@@ -30,16 +30,16 @@ dopplerArray = np.multiply(
 
 def emit_data():
     while True:
-        rdv_values = db_connector.fetch_matrix_values(configParameters["numDopplerBins"],
-                                                      configParameters["numRangeBins"])
+        rdv_values = db_connector.fetch_matrix_values(configParameters["numDopplerBins"], configParameters["numRangeBins"])
         meta_data = db_connector.fetch_data("Prediction", "Score", "Detected objects", "Time")[-1]
 
-        if meta_data[1] == "human_present":
+        if meta_data[1] == "Human_Present":
             prediction_value = True
         else:
             prediction_value = False
 
         score = meta_data[3]
+
         detected_object_distances = [float(value) for value in meta_data[5].strip("[]").split()]
 
         time_stamp = meta_data[7]
