@@ -167,6 +167,7 @@ def serialConfig(configFileName):
 
     return CLIport, Dataport
 
+
 # ------------------------------------------------------------------
 
 # Function to parse the data inside the configuration file
@@ -450,7 +451,7 @@ while True:
             frameData[currentIndex] = detObj
             currentIndex += 1
 
-        time.sleep(0.02)  # Sampling frequency of 20 Hz
+        time.sleep(0.03)  # Sampling frequency of 30 Hz
 
     # Stop the program and close everything if Ctrl + c is pressed
     except KeyboardInterrupt:
