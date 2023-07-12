@@ -106,7 +106,11 @@ def classifier_func(rangeArray, range_doppler):
 
     highlighted_peaks = highlight_peaks(range_doppler, threshold=70.0)
     highlighted_peaks_array = np.array(highlighted_peaks)
-    picked_elements = rangeArray[highlighted_peaks_array[:, 1]].round(2)[:4] # select only 4 detected objects
+
+    try:
+        picked_elements = rangeArray[highlighted_peaks_array[:, 1]].round(2)[:4]  # select only 4 detected objects
+    except IndexError:
+        picked_elements = rangeArray[0].round(2)[:4]
 
     stacked_arr = np.vstack((picked_elements[:2],) * 5)  # Fist 2 elements of the detected range array stacked 5 times
 
