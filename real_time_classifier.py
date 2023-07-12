@@ -110,7 +110,7 @@ def classifier_func(rangeArray, range_doppler):
     try:
         picked_elements = rangeArray[highlighted_peaks_array[:, 1]].round(2)[:4]  # select only 4 detected objects
     except IndexError:
-        picked_elements = rangeArray[0].round(2)[:4]
+        picked_elements = [0.01, 0.01]  # push dummy data
 
     stacked_arr = np.vstack((picked_elements[:2],) * 5)  # Fist 2 elements of the detected range array stacked 5 times
 
