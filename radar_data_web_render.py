@@ -40,7 +40,8 @@ def emit_data():
 
         score = meta_data[3]
 
-        detected_object_distances = [float(value) for value in meta_data[5].strip("[]").split()]
+        # detected_object_distances = [float(value) for value in meta_data[5].strip("[]").split()]
+        detected_object_distances = []
 
         time_stamp = meta_data[7]
 
