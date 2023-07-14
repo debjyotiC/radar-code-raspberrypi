@@ -345,7 +345,7 @@
           var y = data.y;
           var z = data.z;
           var classification = data.classification;
-          let noOfObject = data.detected_object_distances.length;
+          //let noOfObject = data.detected_object_distances.length;
           // noOfObjects.innerText = `No of Object detected : ${noOfObject}`;
           let objectListsHtml = ``;
           for (let i = 0; i < noOfObject; i++) {
@@ -443,8 +443,8 @@
             alarmSound.pause();
           }
           // Update the timestamp
-          var timestampElement = document.getElementById("timestamp");
-          timestampElement.innerText = `Timestamp : ${data.time_stamp}`;
+          //var timestampElement = document.getElementById("timestamp");
+          //timestampElement.innerText = `Timestamp : ${data.time_stamp}`;
         });
         socket.on("connect_error", (err) => {
           console.log("Socket Connection Error", err);
