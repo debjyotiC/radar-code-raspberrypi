@@ -291,8 +291,16 @@
         .getElementById("resetBtn")
         .addEventListener("click", async () => {
           // console.log("resetBtn global");
+
           clearReset();
           initNoDetectScreen();
+          if (writer) {
+            try {
+              writer.write(enc.encode("clear\n"));
+            } catch (error) {
+              // console.log(error)
+            }
+          }
         });
 
       function clearReset() {
@@ -412,7 +420,7 @@
               class="ripple-effect"
               src="../static/red-circle.png"
               style="height: 15px; width: 15px; margin-bottom: 3px"
-            /> Occupied -- Human Presence detected`;
+            /> Human Present`;
             try {
               writer.write(enc.encode("detected\n"));
             } catch (error) {
@@ -455,10 +463,10 @@
               class="ripple-effect"
               src="../static/green-circle-icon.png"
               style="height: 15px; width: 15px; margin-bottom: 3px"
-            /> Clear room - No human detected`;
+            /> No human detected`;
 
             try {
-              writer.write(enc.encode("clean\n"));
+              writer.write(enc.encode("clear\n"));
             } catch (error) {
               // console.log(error)
             }
@@ -1277,7 +1285,7 @@
               class="ripple-effect"
               src="../static/green-circle-icon.png"
               style="height: 15px; width: 15px; margin-bottom: 3px"
-            /> Clear room - No human detected`;
+            /> No human detected`;
       }
 
       // function plotlyReact(data,colorscale,msg){}
