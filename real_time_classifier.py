@@ -9,7 +9,6 @@ from datetime import datetime
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
-
 # TO DO: Add your own config file and model path
 configFileName = f'{script_dir}/config_files/xwr16xx_profile_2023_04_18T16_04_15_382.cfg'
 
@@ -122,16 +121,11 @@ def classifier_func(rangeArray, range_doppler):
 
     if predicted_class == "Human_Present":
         db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": picked_elements, 'Time': time_now}
-        print(
-            {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": picked_elements, 'Time': time_now})
     else:
         db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": [], 'Time': time_now}
-        print(
-            {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": picked_elements, 'Time': time_now})
 
     db_connector.connect()
-    db_connector.insert_data("Prediction", f"{db['Prediction']}", "Score", f"{db['Score']}", "Detected objects",
-                             f"{db['Detected objects']}", "Time", f"{db['Time']}")
+    db_connector.insert_data("Prediction", f"{db['Prediction']}", "Score", f"{db['Score']}", "Detected objects", [], "Time", f"{db['Time']}")
     db_connector.insert_rdv_matrix(range_doppler, f"{db['Time']}")
     db_connector.close()
 
