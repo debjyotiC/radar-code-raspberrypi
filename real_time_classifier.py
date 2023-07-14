@@ -120,7 +120,7 @@ def classifier_func(rangeArray, range_doppler):
     time_now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     if predicted_class == "Human_Present":
-        db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": picked_elements, 'Time': time_now}
+        db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": picked_elements.tolist(), 'Time': time_now}
     else:
         db = {'Prediction': predicted_class, "Score": std_peaks, "Detected objects": [], 'Time': time_now}
 
