@@ -373,8 +373,8 @@
           var y = data.y;
           var z = data.z;
           var classification = data.classification;
-          // let noOfObject = data.detected_object_distances.length;
-          // noOfObjects.innerText = `No of Object detected : ${noOfObject}`;
+          let noOfObject = data.detected_object_distances.length;
+          noOfObjects.innerText = `No of Object detected : ${noOfObject}`;
 
           let objectListsHtml = ``;
           for (let i = 0; i < noOfObject; i++) {
@@ -420,7 +420,7 @@
               class="ripple-effect"
               src="../static/red-circle.png"
               style="height: 15px; width: 15px; margin-bottom: 3px"
-            /> Human Present`;
+            /> Human detected`;
             try {
               writer.write(enc.encode("detected\n"));
             } catch (error) {
@@ -475,7 +475,7 @@
 
           // Update the timestamp
           var timestampElement = document.getElementById("timestamp");
-          //timestampElement.innerText = `Timestamp : ${data.time_stamp}`;
+          timestampElement.innerText = `Timestamp : ${data.time_stamp}`;
         });
 
         socket.on("connect_error", (err) => {
