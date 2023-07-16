@@ -111,7 +111,7 @@
       <div class="row" style="margin-top: 20px">
         <div class="col offset-xs-1">
           <div class="row">
-            <div class="col-sm-12 col-md-9">
+            <div class="col-sm-12 col-md-12">
               <div class="card border-dark">
                 <div class="card-body">
                   <div id="plotly-container"></div>
@@ -120,8 +120,8 @@
                       <div id="iconWithMsg"></div>
                     </div>
                     <div class="col d-flex justify-content-end">
-                      <div id="timestamp"></div>
-                      &nbsp;&nbsp;&nbsp;
+                      <!-- <div id="timestamp"></div>
+                      &nbsp;&nbsp;&nbsp; -->
                       <div id="showNoSound"></div>
                     </div>
                   </div>
@@ -186,7 +186,7 @@
                 </div>
               </div> -->
             </div>
-            <div class="col-sm-12 col-md-3">
+            <!-- <div class="col-sm-12 col-md-3">
               <div
                 class="card text-bg-light mb-3 border-primary"
                 style="height: 580px"
@@ -211,7 +211,7 @@
                   </div>
                 </div>
               </div>
-            </div>
+            </div> -->
           </div>
         </div>
       </div>
@@ -231,8 +231,8 @@
       const deactiveBtn = document.getElementById("deactiveBtn");
       const resetBtn = document.getElementById("resetBtn");
       var alarmSound = document.getElementById("alarmSound");
-      var objectLists = document.getElementById("objectLists");
-      var noOfObjects = document.getElementById("noOfObjects");
+      // var objectLists = document.getElementById("objectLists");
+      // var noOfObjects = document.getElementById("noOfObjects");
 
       var layout = {
         title: {
@@ -309,8 +309,8 @@
         alarmSound.pause();
         activeBtn.disabled = false;
         deactiveBtn.disabled = true;
-        objectLists.innerHTML = "";
-        noOfObjects.innerHTML = "";
+        // objectLists.innerHTML = "";
+        // noOfObjects.innerHTML = "";
       }
 
       window.onload = function () {
@@ -345,19 +345,19 @@
           var y = data.y;
           var z = data.z;
           var classification = data.classification;
-          let noOfObject = data.detected_object_distances.length;
+          // let noOfObject = data.detected_object_distances.length;
           // noOfObjects.innerText = `No of Object detected : ${noOfObject}`;
-          let objectListsHtml = ``;
-          for (let i = 0; i < noOfObject; i++) {
-            objectListsHtml += `<div class="message">
-                            <div class="message-content">Obj: ${
-                              i + 1
-                            }, Distance: ${
-              data.detected_object_distances[i]
-            } ft.</div>
-                          </div>`;
-          }
-          objectLists.innerHTML = objectListsHtml;
+          // let objectListsHtml = ``;
+          // for (let i = 0; i < noOfObject; i++) {
+          //   objectListsHtml += `<div class="message">
+          //                   <div class="message-content">Obj: ${
+          //                     i + 1
+          //                   }, Distance: ${
+          //     data.detected_object_distances[i]
+          //   } ft.</div>
+          //                 </div>`;
+          // }
+          // objectLists.innerHTML = objectListsHtml;
           if (classification) {
             Plotly.react(
               "plotly-container",
@@ -392,7 +392,7 @@
                   class="ripple-effect"
                   src="{{ url_for('static', filename='red-circle.png') }}"
                   style="height: 15px; width: 15px; margin-bottom: 3px"
-                /> Human detected`;
+                /> Human present`;
             // try {
             //   writer.write(enc.encode("detected\n"));
             // } catch (error) {
@@ -442,9 +442,9 @@
             // }
             alarmSound.pause();
           }
-          // Update the timestamp
-          var timestampElement = document.getElementById("timestamp");
-          //timestampElement.innerText = `Timestamp : ${data.time_stamp}`;
+          // // Update the timestamp
+          // var timestampElement = document.getElementById("timestamp");
+          // timestampElement.innerText = `Timestamp : ${data.time_stamp}`;
         });
         socket.on("connect_error", (err) => {
           console.log("Socket Connection Error", err);
