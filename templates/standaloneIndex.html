@@ -290,16 +290,17 @@
         .getElementById("resetBtn")
         .addEventListener("click", async () => {
           // console.log("resetBtn global");
-
-          clearReset();
-          initNoDetectScreen();
-          if (writer) {
+          var enc_reset = new TextEncoder();
+          if (writer)
+          {
             try {
-              writer.write(enc.encode("clear\n"));
+              writer.write(enc_reset.encode("clear\n"));
             } catch (error) {
               // console.log(error)
             }
           }
+          clearReset();
+          initNoDetectScreen();
         });
 
       function clearReset() {
