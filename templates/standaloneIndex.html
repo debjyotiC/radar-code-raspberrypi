@@ -230,6 +230,7 @@
       // var objectLists = document.getElementById("objectLists");
       // var noOfObjects = document.getElementById("noOfObjects");
       var socket = null;
+      var isDetected = false;
 
       var layout = {
         title: {
@@ -290,17 +291,16 @@
         .getElementById("resetBtn")
         .addEventListener("click", async () => {
           // console.log("resetBtn global");
-          var enc_reset = new TextEncoder();
-          if (writer)
-          {
+          isDetected = false;
+          clearReset();
+          initNoDetectScreen();
+          if (writer) {
             try {
-              writer.write(enc_reset.encode("clear\n"));
+              writer.write(enc.encode("clear\n"));
             } catch (error) {
               // console.log(error)
             }
           }
-          clearReset();
-          initNoDetectScreen();
         });
 
       function clearReset() {
@@ -327,6 +327,7 @@
             connectbtn.style.color = "white";
             initNoDetectScreen();
           } else {
+            isDetected = false;
             connectbtn.style.backgroundColor = "#14A44D";
             connectbtn.style.color = "white";
             connectbtn.textContent = "Connect";
@@ -338,7 +339,7 @@
         .getElementById("permissionBtn")
         .addEventListener("click", async () => {
           try {
-            console.log("navigator.serial", navigator, window);
+            // console.log("navigator.serial", navigator, window);
             window.port = await navigator.serial.requestPort();
           } catch (err) {
             console.log("err", err);
@@ -386,7 +387,8 @@
           // }
           // objectLists.innerHTML = objectListsHtml;
 
-          if (classification) {
+          if (classification || isDetected) {
+            isDetected = true;
             Plotly.react(
               "plotly-container",
               [
@@ -427,7 +429,7 @@
               // console.log(error)
             }
             alarmSound.play();
-            socket.disconnect();
+            // socket.disconnect();
           } else {
             Plotly.react(
               "plotly-container",

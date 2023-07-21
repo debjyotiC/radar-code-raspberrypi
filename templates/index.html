@@ -231,6 +231,7 @@
       const deactiveBtn = document.getElementById("deactiveBtn");
       const resetBtn = document.getElementById("resetBtn");
       var alarmSound = document.getElementById("alarmSound");
+      var isDetected = false;
       // var objectLists = document.getElementById("objectLists");
       // var noOfObjects = document.getElementById("noOfObjects");
 
@@ -280,7 +281,7 @@
       document
         .getElementById("activeBtn")
         .addEventListener("click", async () => {
-          console.log("acrivatebtn");
+          // console.log("acrivatebtn");
           activeBtn.disabled = true;
           deactiveBtn.disabled = false;
           // Additional actions...
@@ -300,6 +301,7 @@
       document
         .getElementById("resetBtn")
         .addEventListener("click", async () => {
+          isDetected = false;
           clearReset();
           initNoDetectScreen();
         });
@@ -318,7 +320,7 @@
         fetch("{{ url_for('static', filename='data.json') }}")
           .then((response) => response.json())
           .then((data) => {
-            console.log(data);
+            // console.log(data);
             noObjectPlot = data;
             initNoDetectScreen();
           });
@@ -340,7 +342,7 @@
         });
 
         socket.on("data", function (data) {
-          // console.log("data");
+          // console.log("data", data);
           var x = data.x;
           var y = data.y;
           var z = data.z;
@@ -358,7 +360,11 @@
           //                 </div>`;
           // }
           // objectLists.innerHTML = objectListsHtml;
-          if (classification) {
+
+          // if(){}else{}
+
+          if (classification || isDetected) {
+            isDetected = true;
             Plotly.react(
               "plotly-container",
               [
@@ -399,7 +405,7 @@
             //   // console.log(error)
             // }
             alarmSound.play();
-            socket.disconnect();
+            // socket.disconnect();
           } else {
             Plotly.react(
               "plotly-container",
